@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as EmpleadoRouteImport } from './routes/empleado'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EmpleadoDashboardRouteImport } from './routes/empleado.dashboard'
 
 const EmpleadoRoute = EmpleadoRouteImport.update({
   id: '/empleado',
@@ -22,31 +23,39 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmpleadoDashboardRoute = EmpleadoDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => EmpleadoRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/empleado': typeof EmpleadoRoute
+  '/empleado': typeof EmpleadoRouteWithChildren
+  '/empleado/dashboard': typeof EmpleadoDashboardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/empleado': typeof EmpleadoRoute
+  '/empleado': typeof EmpleadoRouteWithChildren
+  '/empleado/dashboard': typeof EmpleadoDashboardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/empleado': typeof EmpleadoRoute
+  '/empleado': typeof EmpleadoRouteWithChildren
+  '/empleado/dashboard': typeof EmpleadoDashboardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/empleado'
+  fullPaths: '/' | '/empleado' | '/empleado/dashboard'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/empleado'
-  id: '__root__' | '/' | '/empleado'
+  to: '/' | '/empleado' | '/empleado/dashboard'
+  id: '__root__' | '/' | '/empleado' | '/empleado/dashboard'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  EmpleadoRoute: typeof EmpleadoRoute
+  EmpleadoRoute: typeof EmpleadoRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +74,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/empleado/dashboard': {
+      id: '/empleado/dashboard'
+      path: '/dashboard'
+      fullPath: '/empleado/dashboard'
+      preLoaderRoute: typeof EmpleadoDashboardRouteImport
+      parentRoute: typeof EmpleadoRoute
+    }
   }
 }
 
+interface EmpleadoRouteChildren {
+  EmpleadoDashboardRoute: typeof EmpleadoDashboardRoute
+}
+
+const EmpleadoRouteChildren: EmpleadoRouteChildren = {
+  EmpleadoDashboardRoute: EmpleadoDashboardRoute,
+}
+
+const EmpleadoRouteWithChildren = EmpleadoRoute._addFileChildren(
+  EmpleadoRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  EmpleadoRoute: EmpleadoRoute,
+  EmpleadoRoute: EmpleadoRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
