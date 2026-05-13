@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, ClipboardList, Receipt, ArrowLeft, LogOut } from "lucide-react";
+import { Sparkles, ClipboardList, Receipt, ArrowLeft, LogOut, Settings } from "lucide-react";
 import AIChat from "@/components/empleado/AIChat";
 import WorkForm from "@/components/empleado/WorkForm";
 import Invoice from "@/components/empleado/Invoice";
+import Services from "@/components/empleado/Services";
 
 export const Route = createFileRoute("/panel")({
   component: Dashboard,
