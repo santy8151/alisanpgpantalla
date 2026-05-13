@@ -11,7 +11,7 @@ export const Route = createFileRoute("/panel")({
   head: () => ({ meta: [{ title: "Panel empleado | TECNI-RTM" }] }),
 });
 
-type Tab = "chat" | "form" | "invoice";
+type Tab = "chat" | "form" | "invoice" | "services";
 
 function Dashboard() {
   const navigate = useNavigate();
