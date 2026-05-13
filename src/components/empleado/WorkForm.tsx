@@ -55,12 +55,23 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
         </div>
         <div className="p-5 space-y-5">
           {diagram && (
-            <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-              <img src={diagram.url} alt="" className="h-16 w-16 rounded object-cover" />
-              <div className="text-xs">
-                <p className="font-semibold">Diagrama seleccionado</p>
-                <p className="text-muted-foreground">{diagram.style}</p>
+            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <p className="text-sm font-bold uppercase tracking-wide text-primary">
+                  Diagrama seleccionado para esta orden
+                </p>
               </div>
+              <div className="overflow-hidden rounded-lg border bg-background">
+                <img
+                  src={diagram.url}
+                  alt="Diagrama seleccionado"
+                  className="w-full max-h-[400px] object-contain bg-muted/20"
+                />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground italic">
+                Estilo: {diagram.style}
+              </p>
             </div>
           )}
 
