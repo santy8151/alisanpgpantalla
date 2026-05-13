@@ -34,6 +34,7 @@ function Dashboard() {
   const tabs: { id: Tab; label: string; icon: typeof Sparkles }[] = [
     { id: "chat", label: "Chat con IA", icon: Sparkles },
     { id: "form", label: "Formulario de trabajo", icon: ClipboardList },
+    { id: "services", label: "Servicios y tiempos", icon: Settings },
     { id: "invoice", label: "Factura", icon: Receipt },
   ];
 
