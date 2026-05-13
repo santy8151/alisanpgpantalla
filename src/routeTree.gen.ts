@@ -9,10 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PanelRouteImport } from './routes/panel'
 import { Route as EmpleadoRouteImport } from './routes/empleado'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as EmpleadoDashboardRouteImport } from './routes/empleado.dashboard'
 
+const PanelRoute = PanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmpleadoRoute = EmpleadoRouteImport.update({
   id: '/empleado',
   path: '/empleado',
@@ -23,43 +28,46 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EmpleadoDashboardRoute = EmpleadoDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => EmpleadoRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/empleado': typeof EmpleadoRouteWithChildren
-  '/empleado/dashboard': typeof EmpleadoDashboardRoute
+  '/empleado': typeof EmpleadoRoute
+  '/panel': typeof PanelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/empleado': typeof EmpleadoRouteWithChildren
-  '/empleado/dashboard': typeof EmpleadoDashboardRoute
+  '/empleado': typeof EmpleadoRoute
+  '/panel': typeof PanelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/empleado': typeof EmpleadoRouteWithChildren
-  '/empleado/dashboard': typeof EmpleadoDashboardRoute
+  '/empleado': typeof EmpleadoRoute
+  '/panel': typeof PanelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/empleado' | '/empleado/dashboard'
+  fullPaths: '/' | '/empleado' | '/panel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/empleado' | '/empleado/dashboard'
-  id: '__root__' | '/' | '/empleado' | '/empleado/dashboard'
+  to: '/' | '/empleado' | '/panel'
+  id: '__root__' | '/' | '/empleado' | '/panel'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  EmpleadoRoute: typeof EmpleadoRouteWithChildren
+  EmpleadoRoute: typeof EmpleadoRoute
+  PanelRoute: typeof PanelRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/panel': {
+      id: '/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof PanelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/empleado': {
       id: '/empleado'
       path: '/empleado'
@@ -74,32 +82,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/empleado/dashboard': {
-      id: '/empleado/dashboard'
-      path: '/dashboard'
-      fullPath: '/empleado/dashboard'
-      preLoaderRoute: typeof EmpleadoDashboardRouteImport
-      parentRoute: typeof EmpleadoRoute
-    }
   }
 }
 
-interface EmpleadoRouteChildren {
-  EmpleadoDashboardRoute: typeof EmpleadoDashboardRoute
-}
-
-const EmpleadoRouteChildren: EmpleadoRouteChildren = {
-  EmpleadoDashboardRoute: EmpleadoDashboardRoute,
-}
-
-const EmpleadoRouteWithChildren = EmpleadoRoute._addFileChildren(
-  EmpleadoRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  EmpleadoRoute: EmpleadoRouteWithChildren,
+  EmpleadoRoute: EmpleadoRoute,
+  PanelRoute: PanelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -5,7 +5,7 @@ import AIChat from "@/components/empleado/AIChat";
 import WorkForm from "@/components/empleado/WorkForm";
 import Invoice from "@/components/empleado/Invoice";
 
-export const Route = createFileRoute("/empleado/dashboard")({
+export const Route = createFileRoute("/panel")({
   component: Dashboard,
   head: () => ({ meta: [{ title: "Panel empleado | TECNI-RTM" }] }),
 });
