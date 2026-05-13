@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Wrench, Clock, ArrowUpRight } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/")({
   component: CustomerDisplay,
