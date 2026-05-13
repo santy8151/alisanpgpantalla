@@ -9,8 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PanelRouteImport } from './routes/panel'
+import { Route as EmpleadoRouteImport } from './routes/empleado'
 import { Route as IndexRouteImport } from './routes/index'
 
+const PanelRoute = PanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmpleadoRoute = EmpleadoRouteImport.update({
+  id: '/empleado',
+  path: '/empleado',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +31,50 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/empleado': typeof EmpleadoRoute
+  '/panel': typeof PanelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/empleado': typeof EmpleadoRoute
+  '/panel': typeof PanelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/empleado': typeof EmpleadoRoute
+  '/panel': typeof PanelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/empleado' | '/panel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/empleado' | '/panel'
+  id: '__root__' | '/' | '/empleado' | '/panel'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EmpleadoRoute: typeof EmpleadoRoute
+  PanelRoute: typeof PanelRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/panel': {
+      id: '/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof PanelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/empleado': {
+      id: '/empleado'
+      path: '/empleado'
+      fullPath: '/empleado'
+      preLoaderRoute: typeof EmpleadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +87,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EmpleadoRoute: EmpleadoRoute,
+  PanelRoute: PanelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
