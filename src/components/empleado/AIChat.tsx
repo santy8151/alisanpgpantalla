@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Send, Image as ImageIcon, Check, Loader2 } from "lucide-react";
+import { Sparkles, Send, Image as ImageIcon, Check, Loader2, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { store, type Diagram } from "@/lib/workOrderStore";
 import { toast } from "sonner";
@@ -9,16 +9,23 @@ type Msg =
   | { role: "ai"; text: string }
   | { role: "ai"; diagrams: Diagram[] };
 
+const MODELS = [
+  { id: "google/gemini-2.5-flash-image", label: "Gemini 2.5 Flash Image (rápido)" },
+  { id: "google/gemini-3.1-flash-image-preview", label: "Gemini 3.1 Flash Image (rápido + calidad pro)" },
+  { id: "google/gemini-3-pro-image-preview", label: "Gemini 3 Pro Image (máxima calidad)" },
+];
+
 export default function AIChat({ onDone }: { onDone: () => void }) {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "ai",
-      text: "Hola 👋 Soy tu asistente de diagramas. Por favor envíame una **descripción o foto** del diagrama de instalación que necesitas (ej: 'aire acondicionado split residencial con compresor 2HP') y generaré 12 variaciones para que elijas la mejor.",
+      text: "Hola 👋 Soy tu asistente de diagramas. Elige el modelo de IA arriba y descríbeme el diagrama de instalación que necesitas (ej: 'aire acondicionado split residencial con compresor 2HP'). Generaré 12 variaciones para que elijas la mejor.",
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [model, setModel] = useState(MODELS[0].id);
 
   const send = async () => {
     if (!input.trim() || loading) return;
@@ -28,19 +35,19 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
     setLoading(true);
     setMessages((m) => [
       ...m,
-      { role: "ai", text: "Perfecto, generando 12 variaciones de diagrama… esto puede tomar 20-40 segundos." },
+      { role: "ai", text: `Perfecto, generando 12 variaciones con ${MODELS.find(x => x.id === model)?.label}… esto puede tomar 20-40 segundos.` },
     ]);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-diagrams", {
-        body: { prompt, count: 12 },
+        body: { prompt, count: 12, model },
       });
       if (error) throw error;
       const diagrams = (data?.diagrams ?? []) as Diagram[];
       if (!diagrams.length) throw new Error("No se generaron diagramas");
       setMessages((m) => [
         ...m,
-        { role: "ai", text: `Listo. Aquí tienes ${diagrams.length} diagramas. Selecciona el que más te guste:` },
+        { role: "ai", text: `Listo. Aquí tienes ${diagrams.length} diagramas. Pulsa "Elegir esta imagen" debajo del que prefieras:` },
         { role: "ai", diagrams },
       ]);
     } catch (e) {
@@ -55,15 +62,31 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
   const choose = (d: Diagram) => {
     setSelectedId(d.id);
     store.setDiagram(d);
-    toast.success("Diagrama guardado. Ahora completa el formulario.");
+    toast.success("Diagrama guardado. Llevándote al formulario…");
+    setTimeout(() => onDone(), 600);
   };
 
   return (
     <div className="grid gap-4">
       <div className="rounded-lg border bg-card">
-        <div className="border-b px-5 py-3 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">Asistente IA · Generador de diagramas</h2>
+        <div className="border-b px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold">Asistente IA · Generador de diagramas</h2>
+          </div>
+          <label className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground font-medium">Modelo:</span>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              disabled={loading}
+              className="rounded-md border bg-background px-2 py-1.5 text-xs"
+            >
+              {MODELS.map((m) => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto p-5 space-y-4">
@@ -87,31 +110,38 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
                     {m.diagrams.map((d) => {
                       const isSel = selectedId === d.id;
                       return (
-                        <button
+                        <div
                           key={d.id}
-                          onClick={() => choose(d)}
-                          className={`group relative aspect-square overflow-hidden rounded-lg border-2 transition ${
-                            isSel
-                              ? "border-primary ring-2 ring-primary/40"
-                              : "border-border hover:border-primary/60"
+                          className={`relative overflow-hidden rounded-lg border-2 transition ${
+                            isSel ? "border-primary ring-2 ring-primary/40" : "border-border"
                           }`}
                         >
-                          <img
-                            src={d.url}
-                            alt={d.style}
-                            className="h-full w-full object-cover"
-                          />
-                          {isSel && (
-                            <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
-                              <div className="rounded-full bg-primary text-primary-foreground p-2">
-                                <Check className="h-5 w-5" />
+                          <div className="aspect-square overflow-hidden bg-background">
+                            <img
+                              src={d.url}
+                              alt={d.style}
+                              className="h-full w-full object-cover"
+                            />
+                            {isSel && (
+                              <div className="absolute inset-0 bg-primary/30 flex items-center justify-center pointer-events-none">
+                                <div className="rounded-full bg-primary text-primary-foreground p-2">
+                                  <Check className="h-5 w-5" />
+                                </div>
                               </div>
-                            </div>
-                          )}
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1.5 py-1 text-[10px] text-white opacity-0 group-hover:opacity-100 transition truncate">
-                            #{d.id + 1} · {d.style.split(",")[0]}
+                            )}
                           </div>
-                        </button>
+                          <div className="p-1.5 bg-background border-t">
+                            <p className="text-[10px] text-muted-foreground truncate mb-1.5">
+                              #{d.id + 1} · {d.style.split(",")[0]}
+                            </p>
+                            <button
+                              onClick={() => choose(d)}
+                              className="w-full inline-flex items-center justify-center gap-1 rounded-md bg-primary px-2 py-1.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90"
+                            >
+                              {isSel ? <><Check className="h-3 w-3" /> Elegida</> : <>Elegir esta imagen <ArrowRight className="h-3 w-3" /></>}
+                            </button>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
@@ -147,20 +177,6 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
           </button>
         </div>
       </div>
-
-      {selectedId !== null && (
-        <div className="rounded-lg border bg-primary/5 p-4 flex items-center justify-between">
-          <p className="text-sm">
-            ✅ Diagrama #{selectedId + 1} seleccionado.
-          </p>
-          <button
-            onClick={onDone}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Continuar al formulario →
-          </button>
-        </div>
-      )}
     </div>
   );
 }
