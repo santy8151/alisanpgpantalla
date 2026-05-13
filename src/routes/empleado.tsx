@@ -31,7 +31,7 @@ function EmpleadoGate() {
           clearInterval(interval);
           stream.getTracks().forEach((t) => t.stop());
           sessionStorage.setItem("emp_auth", "face");
-          navigate({ to: "/empleado/dashboard" });
+          navigate({ to: "/panel" });
         }
       }, 80);
     } catch {
@@ -48,7 +48,7 @@ function EmpleadoGate() {
 
   const goDemo = () => {
     sessionStorage.setItem("emp_auth", "demo");
-    navigate({ to: "/empleado/dashboard" });
+    navigate({ to: "/panel" });
   };
 
   return (
