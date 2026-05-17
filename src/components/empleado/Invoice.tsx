@@ -335,7 +335,7 @@ export default function Invoice() {
         </div>
       </div>
 
-      <div className="rounded-lg border bg-card h-fit">
+      <div className="rounded-lg border bg-card h-fit no-print">
         <div className="border-b px-5 py-3 flex items-center gap-2">
           <CreditCard className="h-4 w-4 text-primary" />
           <h2 className="font-semibold">Pasarela de pagos</h2>
