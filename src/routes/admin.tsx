@@ -1,15 +1,20 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { ArrowLeft, LogOut, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, LogOut, Shield, Package, FileSpreadsheet } from "lucide-react";
 import CatalogManager from "@/components/admin/CatalogManager";
+import InvoiceHistory from "@/components/admin/InvoiceHistory";
 
 export const Route = createFileRoute("/admin")({
   component: AdminArea,
   head: () => ({ meta: [{ title: "Área administrativa | Alisan PG" }] }),
 });
 
+type Tab = "catalog" | "invoices";
+
 function AdminArea() {
   const navigate = useNavigate();
+  const [tab, setTab] = useState<Tab>("catalog");
+
   useEffect(() => {
     const a = sessionStorage.getItem("emp_auth");
     const r = sessionStorage.getItem("emp_role");
@@ -35,16 +40,12 @@ function AdminArea() {
             </div>
             <div>
               <h1 className="text-base font-bold">Área administrativa</h1>
-              <p className="text-xs text-muted-foreground">Gestión de productos y servicios</p>
+              <p className="text-xs text-muted-foreground">Catálogo y facturación</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href="https://alisanpg.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-            >
+            <a href="https://alisanpg.vercel.app/" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
               Ir a la app de Alisan PG ↗
             </a>
             <button onClick={logout} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
@@ -52,9 +53,20 @@ function AdminArea() {
             </button>
           </div>
         </div>
+        <div className="mx-auto max-w-7xl px-6 flex gap-1">
+          {([
+            { id: "catalog", label: "Productos y servicios", icon: Package },
+            { id: "invoices", label: "Facturas (Siigo)", icon: FileSpreadsheet },
+          ] as { id: Tab; label: string; icon: any }[]).map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm border-b-2 -mb-px ${tab === t.id ? "border-primary text-primary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+              <t.icon className="h-4 w-4" /> {t.label}
+            </button>
+          ))}
+        </div>
       </header>
       <main className="mx-auto max-w-7xl px-6 py-6">
-        <CatalogManager />
+        {tab === "catalog" ? <CatalogManager /> : <InvoiceHistory />}
       </main>
     </div>
   );
