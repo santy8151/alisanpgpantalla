@@ -19,7 +19,7 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "ai",
-      text: "Hola 👋 Soy tu asistente de diagramas. Elige el modelo de IA arriba y descríbeme el diagrama de instalación que necesitas (ej: 'aire acondicionado split residencial con compresor 2HP'). Generaré 12 variaciones para que elijas la mejor.",
+      text: "Hola 👋 Soy tu asistente de diagramas. Elige el modelo de IA arriba y descríbeme el diagrama de instalación que necesitas (ej: 'aire acondicionado split residencial con compresor 2HP'). Generaré una imagen para que la apruebes.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -35,20 +35,20 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
     setLoading(true);
     setMessages((m) => [
       ...m,
-      { role: "ai", text: `Perfecto, generando 12 variaciones con ${MODELS.find(x => x.id === model)?.label}… esto puede tomar 20-40 segundos.` },
+      { role: "ai", text: `Perfecto, generando el diagrama con ${MODELS.find(x => x.id === model)?.label}…` },
     ]);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-diagrams", {
-        body: { prompt, count: 12, model },
+        body: { prompt, count: 1, model },
       });
       if (error) throw error;
       const diagrams = (data?.diagrams ?? []) as Diagram[];
-      if (!diagrams.length) throw new Error("No se generaron diagramas");
+      if (!diagrams.length) throw new Error("No se generó el diagrama");
       setMessages((m) => [
         ...m,
-        { role: "ai", text: `Listo. Aquí tienes ${diagrams.length} diagramas. Pulsa "Elegir esta imagen" debajo del que prefieras:` },
-        { role: "ai", diagrams },
+        { role: "ai", text: `Listo. Aquí está tu diagrama. Pulsa "Elegir esta imagen" para continuar al formulario:` },
+        { role: "ai", diagrams: diagrams.slice(0, 1) },
       ]);
     } catch (e) {
       console.error(e);
@@ -106,7 +106,7 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
                   <p className="whitespace-pre-wrap">{m.text}</p>
                 )}
                 {"diagrams" in m && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-1">
+                  <div className="grid grid-cols-1 gap-3 mt-1 max-w-md">
                     {m.diagrams.map((d) => {
                       const isSel = selectedId === d.id;
                       return (
