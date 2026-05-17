@@ -214,9 +214,9 @@ export default function Invoice() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+    <div className="grid gap-4 lg:grid-cols-[2fr_1fr] print-area">
       <div className="rounded-lg border bg-card">
-        <div className="border-b px-5 py-3 flex items-center justify-between">
+        <div className="border-b px-5 py-3 flex items-center justify-between no-print">
           <div className="flex items-center gap-2">
             <Receipt className="h-4 w-4 text-primary" />
             <h2 className="font-semibold">Factura {invoiceNo}</h2>
@@ -406,6 +406,12 @@ export default function Invoice() {
       <style>{`
         .input { width:100%; border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.7rem; font-size:0.85rem; background:var(--background); }
         .input:focus { outline:none; border-color:var(--primary); }
+        @media print {
+          body * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
+          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
       `}</style>
     </div>
   );
