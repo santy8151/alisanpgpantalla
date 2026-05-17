@@ -41,19 +41,29 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-20">
-        <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
+        <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link to="/" className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <h1 className="text-base font-bold">Panel empleado · TECNI-RTM</h1>
+            <h1 className="text-base font-bold">Panel empleado · Alisan PG</h1>
           </div>
-          <button
-            onClick={logout}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="h-3.5 w-3.5" /> Salir
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="https://alisanpg.lovable.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              Ir a la app de Alisan PG ↗
+            </a>
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-3.5 w-3.5" /> Salir
+            </button>
+          </div>
         </div>
         <nav className="mx-auto max-w-7xl px-6 flex gap-1 overflow-x-auto">
           {tabs.map((t) => {
