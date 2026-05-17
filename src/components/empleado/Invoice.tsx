@@ -371,6 +371,19 @@ export default function Invoice() {
               <Download className="h-4 w-4" /> Descargar Excel
             </button>
             <button
+              onClick={exportSiigoCurrent}
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 text-white px-4 py-2 text-sm font-semibold hover:bg-emerald-700"
+            >
+              <FileText className="h-4 w-4" /> Exportar a Siigo
+            </button>
+            <button
+              onClick={() => downloadSiigoInvoice(SAMPLE_AC_INVOICE)}
+              className="inline-flex items-center gap-2 rounded-md border-2 border-dashed border-primary/60 text-primary px-4 py-2 text-sm font-semibold hover:bg-primary/5"
+              title="Descarga una factura Siigo de ejemplo (taller A/C automotriz)"
+            >
+              <FlaskConical className="h-4 w-4" /> Simulación factura Siigo
+            </button>
+            <button
               onClick={() => setConfigured(false)}
               className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
             >
