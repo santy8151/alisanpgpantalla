@@ -62,6 +62,66 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          created_at: string
+          customer: string | null
+          doc_id: string | null
+          email: string | null
+          id: string
+          invoice_mode: string | null
+          invoice_no: string
+          items: Json | null
+          iva: number | null
+          legal_name: string | null
+          notes: string | null
+          person_type: string | null
+          plate: string | null
+          proceso: string | null
+          proceso_valor: number | null
+          subtotal: number | null
+          total: number | null
+        }
+        Insert: {
+          created_at?: string
+          customer?: string | null
+          doc_id?: string | null
+          email?: string | null
+          id?: string
+          invoice_mode?: string | null
+          invoice_no: string
+          items?: Json | null
+          iva?: number | null
+          legal_name?: string | null
+          notes?: string | null
+          person_type?: string | null
+          plate?: string | null
+          proceso?: string | null
+          proceso_valor?: number | null
+          subtotal?: number | null
+          total?: number | null
+        }
+        Update: {
+          created_at?: string
+          customer?: string | null
+          doc_id?: string | null
+          email?: string | null
+          id?: string
+          invoice_mode?: string | null
+          invoice_no?: string
+          items?: Json | null
+          iva?: number | null
+          legal_name?: string | null
+          notes?: string | null
+          person_type?: string | null
+          plate?: string | null
+          proceso?: string | null
+          proceso_valor?: number | null
+          subtotal?: number | null
+          total?: number | null
+        }
+        Relationships: []
+      }
       service_prices: {
         Row: {
           category: string
