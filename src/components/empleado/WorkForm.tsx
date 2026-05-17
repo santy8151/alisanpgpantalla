@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, Receipt } from "lucide-react";
+import { ClipboardList, Receipt, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { store, type FormData } from "@/lib/workOrderStore";
+import { store, type FormData, type ProcesoTipo, PROCESO_LABELS } from "@/lib/workOrderStore";
 import { productImageFor } from "@/lib/productImages";
 import { toast } from "sonner";
 
@@ -92,7 +92,38 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
             </Field>
           </div>
 
-          {/* Productos con imágenes */}
+          {/* Proceso / tipo de trabajo */}
+          <div className="rounded-xl border-2 border-amber-500/30 bg-amber-500/5 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Wrench className="h-4 w-4 text-amber-600" />
+              <p className="text-sm font-bold uppercase tracking-wide text-amber-700">
+                Proceso a realizar
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Field label="Tipo de proceso *">
+                <select
+                  value={form.proceso ?? ""}
+                  onChange={(e) => update("proceso", (e.target.value || undefined) as ProcesoTipo | undefined)}
+                  className="input"
+                >
+                  <option value="">— Seleccionar —</option>
+                  {(Object.keys(PROCESO_LABELS) as ProcesoTipo[]).map((k) => (
+                    <option key={k} value={k}>{PROCESO_LABELS[k]}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Valor del proceso (COP)">
+                <input
+                  type="number"
+                  value={form.procesoValor ?? ""}
+                  onChange={(e) => update("procesoValor", e.target.value ? Number(e.target.value) : undefined)}
+                  placeholder="0"
+                  className="input"
+                />
+              </Field>
+            </div>
+          </div>
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Productos y servicios Alisan PG

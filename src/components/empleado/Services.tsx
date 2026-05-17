@@ -251,12 +251,55 @@ export default function Services() {
       {callJob && (
         <Modal onClose={() => setCallJob(null)} title={`Llamar a ${callJob.plate}`}>
           <p className="text-sm text-muted-foreground mb-3">
-            Esto activará una alarma en la pantalla del cliente con un sonido tipo EPS.
+            Selecciona la ubicación. Se activará una alarma con sonido tipo EPS en la pantalla del cliente.
           </p>
-          <label className="block">
-            <span className="text-xs font-semibold uppercase text-muted-foreground">Ubicación / bahía</span>
-            <input value={callBay} onChange={(e) => setCallBay(e.target.value)} className="srv-input mt-1" />
-          </label>
+
+          <div className="mb-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Bahías</p>
+            <div className="grid grid-cols-5 gap-2">
+              {[1, 2, 3, 4, 5].map((n) => {
+                const label = `Bahía ${n}`;
+                const active = callBay === label;
+                return (
+                  <button
+                    key={label}
+                    onClick={() => setCallBay(label)}
+                    className={`rounded-lg border-2 px-2 py-3 text-sm font-bold transition ${
+                      active ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-accent"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Cajas</p>
+            <div className="grid grid-cols-5 gap-2">
+              {[1, 2, 3, 4, 5].map((n) => {
+                const label = `Caja ${n}`;
+                const active = callBay === label;
+                return (
+                  <button
+                    key={label}
+                    onClick={() => setCallBay(label)}
+                    className={`rounded-lg border-2 px-2 py-3 text-sm font-bold transition ${
+                      active ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-accent"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground mb-3">
+            Llamar a: <span className="font-bold text-foreground">{callBay}</span>
+          </div>
+
           <div className="mt-4 flex justify-end gap-2">
             <button onClick={() => setCallJob(null)} className="rounded-md border px-3 py-1.5 text-sm">Cancelar</button>
             <button onClick={doCall} className="rounded-md bg-destructive text-destructive-foreground px-3 py-1.5 text-sm font-semibold hover:bg-destructive/90">

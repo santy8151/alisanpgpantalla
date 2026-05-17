@@ -50,7 +50,7 @@ function Dashboard() {
           </div>
           <div className="flex items-center gap-2">
             <a
-              href="https://alisanpg.lovable.app"
+              href="https://alisanpg.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"

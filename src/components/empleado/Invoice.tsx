@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Receipt, Download, CreditCard, CheckCircle2, Loader2, User, Building2, FileText, Sparkles } from "lucide-react";
+import { Receipt, Download, CreditCard, CheckCircle2, Loader2, User, Building2, FileText, Sparkles, Printer, Wrench } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
-import { store, type FormData } from "@/lib/workOrderStore";
+import { store, type FormData, PROCESO_LABELS } from "@/lib/workOrderStore";
 import { toast } from "sonner";
 
 type Price = { id: string; category: string; name: string; price: number };
@@ -48,7 +48,8 @@ export default function Invoice() {
     return arr;
   }, [form, prices]);
 
-  const subtotal = items.reduce((s, i) => s + Number(i.price), 0);
+  const procesoValor = Number(form?.procesoValor ?? 0);
+  const subtotal = items.reduce((s, i) => s + Number(i.price), 0) + procesoValor;
   const iva = subtotal * 0.19;
   const total = subtotal + iva;
 
@@ -77,7 +78,10 @@ export default function Invoice() {
       [""],
       ["Item", "Categoría", "Precio (COP)"],
     ];
-    const rows = items.map((i) => [i.name, i.category, Number(i.price)]);
+    const procesoRow = form.proceso && procesoValor > 0
+      ? [[PROCESO_LABELS[form.proceso], "Proceso", procesoValor]]
+      : [];
+    const rows = [...procesoRow, ...items.map((i) => [i.name, i.category, Number(i.price)])];
     const totals = [
       [""],
       ["Subtotal", "", subtotal],
@@ -210,7 +214,7 @@ export default function Invoice() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+    <div className="grid gap-4 lg:grid-cols-[2fr_1fr] print-area">
       <div className="rounded-lg border bg-card">
         <div className="border-b px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -249,6 +253,19 @@ export default function Invoice() {
             </div>
           </div>
 
+          {form.proceso && (
+            <div className="rounded-lg border-2 border-amber-500/30 bg-amber-500/5 p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-amber-600" />
+                <div>
+                  <p className="text-xs uppercase text-muted-foreground">Proceso a realizar</p>
+                  <p className="font-bold">{PROCESO_LABELS[form.proceso]}</p>
+                </div>
+              </div>
+              <p className="font-mono font-bold text-base">{fmt(procesoValor)}</p>
+            </div>
+          )}
+
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-xs uppercase">
@@ -259,6 +276,13 @@ export default function Invoice() {
                 </tr>
               </thead>
               <tbody>
+                {form.proceso && procesoValor > 0 && (
+                  <tr className="border-t bg-amber-500/5">
+                    <td className="px-3 py-2 font-semibold">{PROCESO_LABELS[form.proceso]}</td>
+                    <td className="px-3 py-2 text-muted-foreground">Proceso</td>
+                    <td className="px-3 py-2 text-right font-mono">{fmt(procesoValor)}</td>
+                  </tr>
+                )}
                 {items.map((i) => (
                   <tr key={i.id} className="border-t">
                     <td className="px-3 py-2">{i.name}</td>
@@ -266,7 +290,7 @@ export default function Invoice() {
                     <td className="px-3 py-2 text-right font-mono">{fmt(Number(i.price))}</td>
                   </tr>
                 ))}
-                {!items.length && (
+                {!items.length && !form.proceso && (
                   <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">Sin ítems</td></tr>
                 )}
               </tbody>
@@ -288,7 +312,13 @@ export default function Invoice() {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 no-print">
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold hover:bg-primary/90"
+            >
+              <Printer className="h-4 w-4" /> Imprimir factura
+            </button>
             <button
               onClick={exportExcel}
               className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
@@ -305,7 +335,7 @@ export default function Invoice() {
         </div>
       </div>
 
-      <div className="rounded-lg border bg-card h-fit">
+      <div className="rounded-lg border bg-card h-fit no-print">
         <div className="border-b px-5 py-3 flex items-center gap-2">
           <CreditCard className="h-4 w-4 text-primary" />
           <h2 className="font-semibold">Pasarela de pagos</h2>
@@ -376,6 +406,12 @@ export default function Invoice() {
       <style>{`
         .input { width:100%; border:1px solid var(--border); border-radius:0.5rem; padding:0.5rem 0.7rem; font-size:0.85rem; background:var(--background); }
         .input:focus { outline:none; border-color:var(--primary); }
+        @media print {
+          body * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
+          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
       `}</style>
     </div>
   );

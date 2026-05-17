@@ -7,9 +7,19 @@ const KEYS = {
   plate: "wo_plate",
 };
 
+export type ProcesoTipo =
+  | "instalacion"
+  | "garantia"
+  | "escaneo_fugas"
+  | "mantenimiento"
+  | "revision"
+  | "otro";
+
 export type FormData = {
   plate: string;
   customer: string;
+  proceso?: ProcesoTipo;
+  procesoValor?: number;
   compresorId?: string;
   evaporadorId?: string;
   condensadorId?: string;
@@ -18,6 +28,15 @@ export type FormData = {
   instalacionId?: string;
   manoObra: boolean;
   notes: string;
+};
+
+export const PROCESO_LABELS: Record<ProcesoTipo, string> = {
+  instalacion: "Instalación",
+  garantia: "Garantía",
+  escaneo_fugas: "Escaneo de fugas",
+  mantenimiento: "Mantenimiento",
+  revision: "Revisión técnica",
+  otro: "Otro",
 };
 
 export const store = {
