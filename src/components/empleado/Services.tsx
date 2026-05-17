@@ -22,6 +22,7 @@ type Job = {
   progress: number;
   delay_message: string | null;
   bay: string | null;
+  called_at?: string | null;
 };
 
 const CATEGORIES = ["compresor","evaporador","condensador","ventilador","trompo","instalacion","otro"];
