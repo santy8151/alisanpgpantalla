@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { ClipboardList, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { store, type FormData } from "@/lib/workOrderStore";
+import { productImageFor } from "@/lib/productImages";
 import { toast } from "sonner";
 
-type Price = { id: string; category: string; name: string; price: number };
+type Price = { id: string; category: string; name: string; price: number; image_url?: string | null };
 
 const groups: { key: keyof FormData; cat: string; label: string }[] = [
   { key: "compresorId", cat: "compresor", label: "Compresor" },
@@ -30,7 +31,7 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
       .from("service_prices")
       .select("*")
       .order("category")
-      .then(({ data }) => setPrices(data ?? []));
+      .then(({ data }) => setPrices((data as Price[]) ?? []));
   }, []);
 
   const update = <K extends keyof FormData>(k: K, v: FormData[K]) =>
@@ -59,19 +60,16 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 <p className="text-sm font-bold uppercase tracking-wide text-primary">
-                  Diagrama seleccionado para esta orden
+                  Diagrama seleccionado
                 </p>
               </div>
               <div className="overflow-hidden rounded-lg border bg-background">
                 <img
                   src={diagram.url}
                   alt="Diagrama seleccionado"
-                  className="w-full max-h-[400px] object-contain bg-muted/20"
+                  className="w-full max-h-[360px] object-contain bg-muted/20"
                 />
               </div>
-              <p className="mt-2 text-xs text-muted-foreground italic">
-                Estilo: {diagram.style}
-              </p>
             </div>
           )}
 
@@ -94,26 +92,51 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
             </Field>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            {groups.map((g) => {
-              const opts = prices.filter((p) => p.category === g.cat);
-              return (
-                <Field key={g.key} label={g.label}>
-                  <select
-                    value={(form[g.key] as string) ?? ""}
-                    onChange={(e) => update(g.key, e.target.value as never)}
-                    className="input"
+          {/* Productos con imágenes */}
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Productos y servicios Alisan PG
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {groups.map((g) => {
+                const opts = prices.filter((p) => p.category === g.cat);
+                const selectedId = form[g.key] as string | undefined;
+                const selected = opts.find((o) => o.id === selectedId);
+                const imgSrc = selected?.image_url || productImageFor(g.cat);
+                return (
+                  <div
+                    key={g.key}
+                    className={`rounded-xl border-2 overflow-hidden transition ${
+                      selectedId ? "border-primary bg-primary/5" : "border-border bg-card"
+                    }`}
                   >
-                    <option value="">— No incluir —</option>
-                    {opts.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.name} — ${Number(o.price).toLocaleString("es-CO")}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              );
-            })}
+                    <div className="aspect-[4/3] bg-muted/30 overflow-hidden">
+                      <img
+                        src={imgSrc}
+                        alt={g.label}
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="p-3 space-y-2">
+                      <p className="text-xs font-bold uppercase tracking-wide">{g.label}</p>
+                      <select
+                        value={selectedId ?? ""}
+                        onChange={(e) => update(g.key, e.target.value as never)}
+                        className="input"
+                      >
+                        <option value="">— No incluir —</option>
+                        {opts.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.name} — ${Number(o.price).toLocaleString("es-CO")}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <label className="flex items-center gap-2 text-sm">
