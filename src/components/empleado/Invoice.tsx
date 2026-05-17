@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Receipt, Download, CreditCard, CheckCircle2, Loader2, User, Building2, FileText, Sparkles } from "lucide-react";
+import { Receipt, Download, CreditCard, CheckCircle2, Loader2, User, Building2, FileText, Sparkles, Printer, Wrench } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
-import { store, type FormData } from "@/lib/workOrderStore";
+import { store, type FormData, PROCESO_LABELS } from "@/lib/workOrderStore";
 import { toast } from "sonner";
 
 type Price = { id: string; category: string; name: string; price: number };
@@ -48,7 +48,8 @@ export default function Invoice() {
     return arr;
   }, [form, prices]);
 
-  const subtotal = items.reduce((s, i) => s + Number(i.price), 0);
+  const procesoValor = Number(form?.procesoValor ?? 0);
+  const subtotal = items.reduce((s, i) => s + Number(i.price), 0) + procesoValor;
   const iva = subtotal * 0.19;
   const total = subtotal + iva;
 
