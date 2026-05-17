@@ -78,7 +78,10 @@ export default function Invoice() {
       [""],
       ["Item", "Categoría", "Precio (COP)"],
     ];
-    const rows = items.map((i) => [i.name, i.category, Number(i.price)]);
+    const procesoRow = form.proceso && procesoValor > 0
+      ? [[PROCESO_LABELS[form.proceso], "Proceso", procesoValor]]
+      : [];
+    const rows = [...procesoRow, ...items.map((i) => [i.name, i.category, Number(i.price)])];
     const totals = [
       [""],
       ["Subtotal", "", subtotal],
