@@ -250,6 +250,19 @@ export default function Invoice() {
             </div>
           </div>
 
+          {form.proceso && (
+            <div className="rounded-lg border-2 border-amber-500/30 bg-amber-500/5 p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-amber-600" />
+                <div>
+                  <p className="text-xs uppercase text-muted-foreground">Proceso a realizar</p>
+                  <p className="font-bold">{PROCESO_LABELS[form.proceso]}</p>
+                </div>
+              </div>
+              <p className="font-mono font-bold text-base">{fmt(procesoValor)}</p>
+            </div>
+          )}
+
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-xs uppercase">
@@ -260,6 +273,13 @@ export default function Invoice() {
                 </tr>
               </thead>
               <tbody>
+                {form.proceso && procesoValor > 0 && (
+                  <tr className="border-t bg-amber-500/5">
+                    <td className="px-3 py-2 font-semibold">{PROCESO_LABELS[form.proceso]}</td>
+                    <td className="px-3 py-2 text-muted-foreground">Proceso</td>
+                    <td className="px-3 py-2 text-right font-mono">{fmt(procesoValor)}</td>
+                  </tr>
+                )}
                 {items.map((i) => (
                   <tr key={i.id} className="border-t">
                     <td className="px-3 py-2">{i.name}</td>
@@ -267,7 +287,7 @@ export default function Invoice() {
                     <td className="px-3 py-2 text-right font-mono">{fmt(Number(i.price))}</td>
                   </tr>
                 ))}
-                {!items.length && (
+                {!items.length && !form.proceso && (
                   <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">Sin ítems</td></tr>
                 )}
               </tbody>
@@ -289,7 +309,13 @@ export default function Invoice() {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 no-print">
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold hover:bg-primary/90"
+            >
+              <Printer className="h-4 w-4" /> Imprimir factura
+            </button>
             <button
               onClick={exportExcel}
               className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
