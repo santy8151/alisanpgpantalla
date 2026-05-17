@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Receipt, Download, CreditCard, CheckCircle2, Loader2, User, Building2, FileText, Sparkles, Printer, Wrench } from "lucide-react";
+import { Receipt, Download, CreditCard, CheckCircle2, Loader2, User, Building2, FileText, Sparkles, Printer, Wrench, FlaskConical } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { store, type FormData, PROCESO_LABELS } from "@/lib/workOrderStore";
 import { toast } from "sonner";
+import { downloadSiigoInvoice, SAMPLE_AC_INVOICE, type SiigoInvoice } from "@/lib/siigoExport";
 
 type Price = { id: string; category: string; name: string; price: number };
 
@@ -62,8 +63,52 @@ export default function Invoice() {
     }, 1800);
   };
 
-  const exportExcel = () => {
+  const persistInvoice = async () => {
     if (!form) return;
+    await supabase.from("invoices").insert({
+      invoice_no: invoiceNo,
+      customer: form.customer,
+      legal_name: legalName || form.customer,
+      doc_id: docId,
+      person_type: personType,
+      invoice_mode: invoiceMode,
+      email: email || null,
+      plate: form.plate,
+      proceso: form.proceso ? PROCESO_LABELS[form.proceso] : null,
+      proceso_valor: procesoValor,
+      items: items.map((i) => ({ name: i.name, category: i.category, price: Number(i.price), qty: 1 })),
+      subtotal, iva, total, notes: form.notes || null,
+    });
+  };
+
+  const exportSiigoCurrent = async () => {
+    if (!form) return;
+    const inv: SiigoInvoice = {
+      invoice_no: invoiceNo,
+      fecha: new Date().toISOString().slice(0, 10),
+      tipo_documento: invoiceMode === "electronica" ? "FE" : "FV",
+      cliente_id: docId,
+      cliente_nombre: legalName || form.customer,
+      cliente_email: email,
+      persona_tipo: (personType ?? "natural") as "natural" | "juridica",
+      placa: form.plate,
+      proceso: form.proceso ? PROCESO_LABELS[form.proceso] : "",
+      items: [
+        ...(form.proceso && procesoValor > 0
+          ? [{ codigo: "PROC-" + form.proceso.toUpperCase().slice(0, 6), descripcion: PROCESO_LABELS[form.proceso], cantidad: 1, valor_unitario: procesoValor, iva: 19 }]
+          : []),
+        ...items.map((i, idx) => ({ codigo: `ITM-${String(idx + 1).padStart(3, "0")}`, descripcion: i.name, cantidad: 1, valor_unitario: Number(i.price), iva: 19 })),
+      ],
+      notas: form.notes || "",
+    };
+    downloadSiigoInvoice(inv);
+    await persistInvoice();
+    toast.success("Factura Siigo descargada y archivada");
+  };
+
+  const exportExcel = async () => {
+    if (!form) return;
+    await persistInvoice();
     const wb = XLSX.utils.book_new();
     const header = [
       ["FACTURA", invoiceNo],
@@ -324,6 +369,19 @@ export default function Invoice() {
               className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
             >
               <Download className="h-4 w-4" /> Descargar Excel
+            </button>
+            <button
+              onClick={exportSiigoCurrent}
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 text-white px-4 py-2 text-sm font-semibold hover:bg-emerald-700"
+            >
+              <FileText className="h-4 w-4" /> Exportar a Siigo
+            </button>
+            <button
+              onClick={() => downloadSiigoInvoice(SAMPLE_AC_INVOICE)}
+              className="inline-flex items-center gap-2 rounded-md border-2 border-dashed border-primary/60 text-primary px-4 py-2 text-sm font-semibold hover:bg-primary/5"
+              title="Descarga una factura Siigo de ejemplo (taller A/C automotriz)"
+            >
+              <FlaskConical className="h-4 w-4" /> Simulación factura Siigo
             </button>
             <button
               onClick={() => setConfigured(false)}
