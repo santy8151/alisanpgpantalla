@@ -14,12 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_jobs: {
+        Row: {
+          bay: string | null
+          called_at: string | null
+          created_at: string
+          customer: string | null
+          delay_message: string | null
+          estimated_minutes: number
+          id: string
+          plate: string
+          progress: number
+          service_name: string | null
+          service_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bay?: string | null
+          called_at?: string | null
+          created_at?: string
+          customer?: string | null
+          delay_message?: string | null
+          estimated_minutes?: number
+          id?: string
+          plate: string
+          progress?: number
+          service_name?: string | null
+          service_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bay?: string | null
+          called_at?: string | null
+          created_at?: string
+          customer?: string | null
+          delay_message?: string | null
+          estimated_minutes?: number
+          id?: string
+          plate?: string
+          progress?: number
+          service_name?: string | null
+          service_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_prices: {
         Row: {
           category: string
           created_at: string
           delivery_minutes: number
           id: string
+          image_url: string | null
           name: string
           price: number
         }
@@ -28,6 +77,7 @@ export type Database = {
           created_at?: string
           delivery_minutes?: number
           id?: string
+          image_url?: string | null
           name: string
           price: number
         }
@@ -36,6 +86,7 @@ export type Database = {
           created_at?: string
           delivery_minutes?: number
           id?: string
+          image_url?: string | null
           name?: string
           price?: number
         }
