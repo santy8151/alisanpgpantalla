@@ -93,6 +93,96 @@ export default function CatalogManager() {
     load();
   };
 
+  // --- Importación CSV estilo Siigo ---
+  const csvRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importReport, setImportReport] = useState<{ created: number; updated: number; skipped: number } | null>(null);
+
+  const parseCSV = (text: string): Record<string, string>[] => {
+    // separa por líneas y detecta delimitador (, ; o tab)
+    const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim().length);
+    if (!lines.length) return [];
+    const first = lines[0];
+    const delim = first.includes(";") ? ";" : first.includes("\t") ? "\t" : ",";
+    const splitLine = (line: string) => {
+      const out: string[] = [];
+      let cur = ""; let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; continue; }
+        if (ch === delim && !inQ) { out.push(cur); cur = ""; continue; }
+        cur += ch;
+      }
+      out.push(cur);
+      return out.map((s) => s.trim());
+    };
+    const headers = splitLine(lines[0]).map((h) => h.toLowerCase());
+    return lines.slice(1).map((l) => {
+      const cells = splitLine(l);
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => (row[h] = cells[i] ?? ""));
+      return row;
+    });
+  };
+
+  const pick = (row: Record<string, string>, keys: string[]) => {
+    for (const k of keys) {
+      const found = Object.keys(row).find((h) => h === k || h.includes(k));
+      if (found && row[found]) return row[found];
+    }
+    return "";
+  };
+
+  const handleCsvImport = async (file: File) => {
+    setImporting(true); setImportReport(null);
+    try {
+      const text = await file.text();
+      const rows = parseCSV(text);
+      if (!rows.length) { toast.error("CSV vacío o sin encabezados"); setImporting(false); return; }
+
+      const { data: existing } = await supabase.from("service_prices").select("id,name,image_url");
+      const byName = new Map((existing ?? []).map((r: any) => [String(r.name).trim().toLowerCase(), r]));
+
+      let created = 0, updated = 0, skipped = 0;
+      for (const r of rows) {
+        const name = pick(r, ["nombre", "name", "producto", "descripcion", "descripción", "item"]);
+        const priceStr = pick(r, ["precio", "valor", "price", "precio de venta", "precio unitario"]);
+        const category = (pick(r, ["categoria", "categoría", "tipo", "grupo"]) || "producto").toLowerCase();
+        const minStr = pick(r, ["minutos", "tiempo", "delivery", "min"]);
+        if (!name) { skipped++; continue; }
+        const price = Number(String(priceStr).replace(/[^\d.-]/g, "")) || 0;
+        const delivery_minutes = Number(minStr) || 30;
+        const finalCat = CATEGORIES.includes(category) ? category : "producto";
+        const match = byName.get(name.trim().toLowerCase());
+        if (match) {
+          const { error } = await supabase.from("service_prices")
+            .update({ price, category: finalCat, delivery_minutes }).eq("id", (match as any).id);
+          if (error) skipped++; else updated++;
+        } else {
+          const { error } = await supabase.from("service_prices")
+            .insert({ name: name.trim(), category: finalCat, price, delivery_minutes });
+          if (error) skipped++; else created++;
+        }
+      }
+      setImportReport({ created, updated, skipped });
+      toast.success(`Importación: ${created} nuevos · ${updated} actualizados · ${skipped} omitidos`);
+      load();
+    } catch (e: any) {
+      toast.error("Error leyendo CSV: " + (e?.message ?? e));
+    } finally {
+      setImporting(false);
+      if (csvRef.current) csvRef.current.value = "";
+    }
+  };
+
+  const downloadTemplate = () => {
+    const csv = "nombre,categoria,precio,minutos\nCompresor Copeland 1HP,compresor,850000,60\nMantenimiento básico AC,mantenimiento,120000,45\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "plantilla-catalogo.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filtered = filter ? items.filter((i) => i.category === filter) : items;
   const imgFor = (s: Pick<Service,"category"|"image_url">) => s.image_url || productImageFor(s.category);
 
