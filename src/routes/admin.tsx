@@ -59,6 +59,7 @@ function AdminArea() {
           {([
             { id: "dashboard", label: "Dashboard de clientes", icon: Users },
             { id: "catalog", label: "Productos y servicios", icon: Package },
+            { id: "services", label: "Servicios y tiempos", icon: Settings },
             { id: "invoices", label: "Facturas (Siigo)", icon: FileSpreadsheet },
           ] as { id: Tab; label: string; icon: any }[]).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -71,6 +72,7 @@ function AdminArea() {
       <main className="mx-auto max-w-7xl px-6 py-6">
         {tab === "dashboard" && <CustomerDashboard />}
         {tab === "catalog" && <CatalogManager />}
+        {tab === "services" && <Services onGoInvoice={() => setTab("invoices")} />}
         {tab === "invoices" && <InvoiceHistory />}
       </main>
     </div>
