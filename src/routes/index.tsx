@@ -33,7 +33,9 @@ function CustomerDisplay() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [now, setNow] = useState(new Date());
   const seenCalled = useRef<Set<string>>(new Set());
-  const audioUnlocked = useRef(false);
+  const firstLoad = useRef(true);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const audioUnlockedRef = useRef(false);
 
   // Load + realtime
   useEffect(() => {
@@ -43,7 +45,13 @@ function CustomerDisplay() {
         .select("*")
         .neq("status", "finalizado")
         .order("created_at", { ascending: true });
-      setJobs((data as Job[]) ?? []);
+      const list = (data as Job[]) ?? [];
+      // En la PRIMERA carga, no hacemos sonar nada: solo registramos las llamadas existentes
+      if (firstLoad.current) {
+        list.filter((j) => j.status === "llamado").forEach((j) => seenCalled.current.add(j.id));
+        firstLoad.current = false;
+      }
+      setJobs(list);
     };
     load();
     const ch = supabase
@@ -57,18 +65,23 @@ function CustomerDisplay() {
     };
   }, []);
 
-  // Sound when a NEW call appears
+  // Sonido cuando aparece una NUEVA llamada (después de la primera carga)
   useEffect(() => {
     jobs.forEach((j) => {
       if (j.status === "llamado" && !seenCalled.current.has(j.id)) {
         seenCalled.current.add(j.id);
-        if (audioUnlocked.current) playCallChime();
+        if (audioUnlockedRef.current) {
+          // suena 2 veces para que se escuche bien
+          playCallChime();
+          setTimeout(() => playCallChime(), 700);
+        }
       }
     });
   }, [jobs]);
 
   const unlockAudio = () => {
-    audioUnlocked.current = true;
+    audioUnlockedRef.current = true;
+    setAudioUnlocked(true);
     playCallChime();
   };
 
