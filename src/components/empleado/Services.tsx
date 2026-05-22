@@ -210,6 +210,53 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
     load();
   };
 
+  // Mapa categoría -> campo en form_data
+  const CAT_TO_KEY: Record<string, keyof JobFormData> = {
+    compresor: "compresorId",
+    evaporador: "evaporadorId",
+    condensador: "condensadorId",
+    ventilador: "ventiladorId",
+    trompo: "trompoId",
+    instalacion: "instalacionId",
+  };
+
+  const openAssign = (s: Service) => {
+    const key = CAT_TO_KEY[s.category];
+    setAssignService(s);
+    const sel: Record<string, boolean> = {};
+    if (key) {
+      for (const j of jobs) {
+        const fd = (j.form_data ?? {}) as JobFormData;
+        sel[j.id] = (fd as any)[key] === s.id;
+      }
+    }
+    setAssignSel(sel);
+  };
+
+  const saveAssign = async () => {
+    if (!assignService) return;
+    const key = CAT_TO_KEY[assignService.category];
+    if (!key) { toast.error("Esta categoría no se asigna directamente a placas"); return; }
+    const updates: Promise<any>[] = [];
+    for (const j of jobs) {
+      const fd = { ...((j.form_data ?? {}) as JobFormData) };
+      const wants = !!assignSel[j.id];
+      const hasIt = (fd as any)[key] === assignService.id;
+      if (wants && !hasIt) (fd as any)[key] = assignService.id;
+      else if (!wants && hasIt) delete (fd as any)[key];
+      else continue;
+      updates.push(supabase.from("active_jobs").update({ form_data: fd as any } as any).eq("id", j.id));
+    }
+    if (!updates.length) { setAssignService(null); return; }
+    const res = await Promise.all(updates);
+    const err = res.find((r: any) => r.error)?.error;
+    if (err) return toast.error(err.message);
+    toast.success("Producto asignado a las placas seleccionadas");
+    setAssignService(null);
+    load();
+  };
+
+
   const openDelay = (j: Job) => {
     setDelayJob(j);
     setDelayMsg(j.delay_message ?? "");
