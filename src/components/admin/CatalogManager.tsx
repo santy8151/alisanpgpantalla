@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Package, Image as ImageIcon, Upload, LayoutGrid, List } from "lucide-react";
+import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Package, Image as ImageIcon, Upload, LayoutGrid, List, FileSpreadsheet, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { productImageFor } from "@/lib/productImages";
@@ -93,6 +93,96 @@ export default function CatalogManager() {
     load();
   };
 
+  // --- Importación CSV estilo Siigo ---
+  const csvRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importReport, setImportReport] = useState<{ created: number; updated: number; skipped: number } | null>(null);
+
+  const parseCSV = (text: string): Record<string, string>[] => {
+    // separa por líneas y detecta delimitador (, ; o tab)
+    const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim().length);
+    if (!lines.length) return [];
+    const first = lines[0];
+    const delim = first.includes(";") ? ";" : first.includes("\t") ? "\t" : ",";
+    const splitLine = (line: string) => {
+      const out: string[] = [];
+      let cur = ""; let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; continue; }
+        if (ch === delim && !inQ) { out.push(cur); cur = ""; continue; }
+        cur += ch;
+      }
+      out.push(cur);
+      return out.map((s) => s.trim());
+    };
+    const headers = splitLine(lines[0]).map((h) => h.toLowerCase());
+    return lines.slice(1).map((l) => {
+      const cells = splitLine(l);
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => (row[h] = cells[i] ?? ""));
+      return row;
+    });
+  };
+
+  const pick = (row: Record<string, string>, keys: string[]) => {
+    for (const k of keys) {
+      const found = Object.keys(row).find((h) => h === k || h.includes(k));
+      if (found && row[found]) return row[found];
+    }
+    return "";
+  };
+
+  const handleCsvImport = async (file: File) => {
+    setImporting(true); setImportReport(null);
+    try {
+      const text = await file.text();
+      const rows = parseCSV(text);
+      if (!rows.length) { toast.error("CSV vacío o sin encabezados"); setImporting(false); return; }
+
+      const { data: existing } = await supabase.from("service_prices").select("id,name,image_url");
+      const byName = new Map((existing ?? []).map((r: any) => [String(r.name).trim().toLowerCase(), r]));
+
+      let created = 0, updated = 0, skipped = 0;
+      for (const r of rows) {
+        const name = pick(r, ["nombre", "name", "producto", "descripcion", "descripción", "item"]);
+        const priceStr = pick(r, ["precio", "valor", "price", "precio de venta", "precio unitario"]);
+        const category = (pick(r, ["categoria", "categoría", "tipo", "grupo"]) || "producto").toLowerCase();
+        const minStr = pick(r, ["minutos", "tiempo", "delivery", "min"]);
+        if (!name) { skipped++; continue; }
+        const price = Number(String(priceStr).replace(/[^\d.-]/g, "")) || 0;
+        const delivery_minutes = Number(minStr) || 30;
+        const finalCat = CATEGORIES.includes(category) ? category : "producto";
+        const match = byName.get(name.trim().toLowerCase());
+        if (match) {
+          const { error } = await supabase.from("service_prices")
+            .update({ price, category: finalCat, delivery_minutes }).eq("id", (match as any).id);
+          if (error) skipped++; else updated++;
+        } else {
+          const { error } = await supabase.from("service_prices")
+            .insert({ name: name.trim(), category: finalCat, price, delivery_minutes });
+          if (error) skipped++; else created++;
+        }
+      }
+      setImportReport({ created, updated, skipped });
+      toast.success(`Importación: ${created} nuevos · ${updated} actualizados · ${skipped} omitidos`);
+      load();
+    } catch (e: any) {
+      toast.error("Error leyendo CSV: " + (e?.message ?? e));
+    } finally {
+      setImporting(false);
+      if (csvRef.current) csvRef.current.value = "";
+    }
+  };
+
+  const downloadTemplate = () => {
+    const csv = "nombre,categoria,precio,minutos\nCompresor Copeland 1HP,compresor,850000,60\nMantenimiento básico AC,mantenimiento,120000,45\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "plantilla-catalogo.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filtered = filter ? items.filter((i) => i.category === filter) : items;
   const imgFor = (s: Pick<Service,"category"|"image_url">) => s.image_url || productImageFor(s.category);
 
@@ -131,6 +221,39 @@ export default function CatalogManager() {
           <button onClick={create} className="rounded-md bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 px-3 py-2">
             <Plus className="inline h-4 w-4 mr-1" /> Agregar
           </button>
+        </div>
+      </div>
+
+      {/* Importar CSV estilo Siigo */}
+      <div className="rounded-lg border bg-card">
+        <div className="border-b px-5 py-3 flex items-center gap-2">
+          <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+          <h2 className="font-semibold">Importar catálogo desde Siigo (CSV)</h2>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Sube el archivo CSV exportado desde Siigo (o cualquier CSV con columnas <b>nombre</b>, <b>precio</b>, opcional <b>categoria</b> y <b>minutos</b>).
+            Los productos existentes se <b>actualizan por nombre</b> manteniendo sus imágenes; los nuevos se crean. Las imágenes se siguen
+            subiendo/editando manualmente desde las tarjetas.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => csvRef.current?.click()}
+              disabled={importing}
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 text-white text-sm font-semibold px-4 py-2 hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <Upload className="h-4 w-4" /> {importing ? "Importando…" : "Subir archivo CSV"}
+            </button>
+            <input ref={csvRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleCsvImport(e.target.files[0])} />
+            <button onClick={downloadTemplate} className="inline-flex items-center gap-2 rounded-md border text-sm px-3 py-2 hover:bg-accent">
+              <Download className="h-4 w-4" /> Descargar plantilla
+            </button>
+            {importReport && (
+              <span className="text-xs text-muted-foreground">
+                ✓ <b className="text-emerald-600">{importReport.created}</b> nuevos · <b className="text-primary">{importReport.updated}</b> actualizados · <b>{importReport.skipped}</b> omitidos
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
