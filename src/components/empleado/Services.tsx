@@ -53,6 +53,10 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
   const [workJob, setWorkJob] = useState<Job | null>(null);
   const [workData, setWorkData] = useState<JobFormData>({});
 
+  // Asignar un producto del catálogo a placas activas
+  const [assignService, setAssignService] = useState<Service | null>(null);
+  const [assignSel, setAssignSel] = useState<Record<string, boolean>>({});
+
   // Crear nueva placa / servicio
   const [newPlate, setNewPlate] = useState({ kind: "vehiculo" as "vehiculo" | "cliente", plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
 
