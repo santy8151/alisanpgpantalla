@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Megaphone, AlertTriangle, Car, MessageSquare, CheckCircle2 } from "lucide-react";
+import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Megaphone, AlertTriangle, Car, MessageSquare, CheckCircle2, Receipt, User } from "lucide-react";
+import { store } from "@/lib/workOrderStore";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -27,7 +28,7 @@ type Job = {
 
 const CATEGORIES = ["compresor","evaporador","condensador","ventilador","trompo","instalacion","otro"];
 
-export default function Services() {
+export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } = {}) {
   const [items, setItems] = useState<Service[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,8 +44,8 @@ export default function Services() {
   const [callJob, setCallJob] = useState<Job | null>(null);
   const [callBay, setCallBay] = useState("Bahía 1");
 
-  // Crear nueva placa
-  const [newPlate, setNewPlate] = useState({ plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
+  // Crear nueva placa / servicio
+  const [newPlate, setNewPlate] = useState({ kind: "vehiculo" as "vehiculo" | "cliente", plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
 
   const load = async () => {
     setLoading(true);
@@ -104,9 +105,14 @@ export default function Services() {
   };
   const finishJob = async (id: string) => updateJob(id, { status: "finalizado" });
   const addPlate = async () => {
-    if (!newPlate.plate.trim()) return toast.error("Placa requerida");
+    const isVeh = newPlate.kind === "vehiculo";
+    if (isVeh && !newPlate.plate.trim()) return toast.error("Placa requerida");
+    if (!isVeh && !newPlate.customer.trim()) return toast.error("Nombre del cliente/empresa requerido");
+    const ref = isVeh
+      ? newPlate.plate.toUpperCase()
+      : `SVR-${Date.now().toString().slice(-5)}`;
     const { error } = await supabase.from("active_jobs").insert({
-      plate: newPlate.plate.toUpperCase(),
+      plate: ref,
       customer: newPlate.customer || null,
       service_type: newPlate.service_type,
       service_name: newPlate.service_name,
@@ -114,9 +120,27 @@ export default function Services() {
       progress: 10,
     });
     if (error) return toast.error(error.message);
-    toast.success("Placa agregada al tablero");
-    setNewPlate({ plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
+    toast.success(isVeh ? "Placa agregada al tablero" : "Servicio sin vehículo agregado");
+    setNewPlate({ kind: newPlate.kind, plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
     load();
+  };
+
+  // Enviar este servicio al módulo de Factura
+  const goInvoice = (j: Job) => {
+    store.setForm({
+      plate: j.plate,
+      customer: j.customer ?? "",
+      proceso: (j.service_type as any) === "instalacion" ? "instalacion"
+        : (j.service_type as any) === "garantia" ? "garantia"
+        : (j.service_type as any) === "escaneo_fugas" ? "escaneo_fugas"
+        : (j.service_type as any) === "mantenimiento" ? "mantenimiento"
+        : "revision",
+      procesoValor: 0,
+      manoObra: false,
+      notes: j.service_name ?? "",
+    });
+    toast.success(`Datos de ${j.plate} cargados en Factura`);
+    onGoInvoice?.();
   };
   const openDelay = (j: Job) => {
     setDelayJob(j);
@@ -149,25 +173,52 @@ export default function Services() {
         </div>
 
         {/* Form rápido */}
-        <div className="border-b p-4 grid sm:grid-cols-5 gap-2 bg-muted/20">
-          <input placeholder="Placa" value={newPlate.plate}
-            onChange={(e) => setNewPlate({ ...newPlate, plate: e.target.value.toUpperCase() })}
-            className="srv-input" />
-          <input placeholder="Cliente" value={newPlate.customer}
-            onChange={(e) => setNewPlate({ ...newPlate, customer: e.target.value })}
-            className="srv-input" />
-          <select value={newPlate.service_type}
-            onChange={(e) => setNewPlate({ ...newPlate, service_type: e.target.value })}
-            className="srv-input">
-            <option value="revision">Revisión</option>
-            <option value="instalacion">Instalación</option>
-          </select>
-          <input type="number" placeholder="Minutos" value={newPlate.estimated_minutes}
-            onChange={(e) => setNewPlate({ ...newPlate, estimated_minutes: Number(e.target.value) })}
-            className="srv-input" />
-          <button onClick={addPlate} className="rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90">
-            <Plus className="inline h-4 w-4" /> Agregar placa
-          </button>
+        <div className="border-b p-4 space-y-3 bg-muted/20">
+          <div className="inline-flex rounded-md border bg-background p-1 text-xs">
+            <button
+              onClick={() => setNewPlate({ ...newPlate, kind: "vehiculo" })}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded ${newPlate.kind === "vehiculo" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground"}`}
+            >
+              <Car className="h-3.5 w-3.5" /> Vehículo (placa)
+            </button>
+            <button
+              onClick={() => setNewPlate({ ...newPlate, kind: "cliente" })}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded ${newPlate.kind === "cliente" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground"}`}
+            >
+              <User className="h-3.5 w-3.5" /> Cliente / empresa (sin vehículo)
+            </button>
+          </div>
+          <div className="grid sm:grid-cols-5 gap-2">
+            {newPlate.kind === "vehiculo" ? (
+              <input placeholder="Placa" value={newPlate.plate}
+                onChange={(e) => setNewPlate({ ...newPlate, plate: e.target.value.toUpperCase() })}
+                className="srv-input" />
+            ) : (
+              <input placeholder="Empresa / Persona" value={newPlate.customer}
+                onChange={(e) => setNewPlate({ ...newPlate, customer: e.target.value })}
+                className="srv-input" />
+            )}
+            <input placeholder={newPlate.kind === "vehiculo" ? "Cliente" : "Contacto (opcional)"} value={newPlate.kind === "vehiculo" ? newPlate.customer : ""}
+              onChange={(e) => setNewPlate({ ...newPlate, customer: e.target.value })}
+              className="srv-input"
+              disabled={newPlate.kind === "cliente"} />
+            <select value={newPlate.service_type}
+              onChange={(e) => setNewPlate({ ...newPlate, service_type: e.target.value })}
+              className="srv-input">
+              <option value="revision">Revisión</option>
+              <option value="instalacion">Instalación</option>
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="garantia">Garantía</option>
+              <option value="escaneo_fugas">Escaneo de fugas</option>
+              <option value="producto">Solo producto</option>
+            </select>
+            <input type="number" placeholder="Minutos" value={newPlate.estimated_minutes}
+              onChange={(e) => setNewPlate({ ...newPlate, estimated_minutes: Number(e.target.value) })}
+              className="srv-input" />
+            <button onClick={addPlate} className="rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90">
+              <Plus className="inline h-4 w-4" /> Agregar
+            </button>
+          </div>
         </div>
 
         {jobs.length === 0 ? (
@@ -212,6 +263,9 @@ export default function Services() {
                   </button>
                   <button onClick={() => openCall(j)} className="inline-flex items-center gap-1 rounded-md bg-destructive text-destructive-foreground px-2.5 py-1.5 text-xs font-semibold hover:bg-destructive/90">
                     <Megaphone className="h-3.5 w-3.5" /> Llamar cliente
+                  </button>
+                  <button onClick={() => goInvoice(j)} className="inline-flex items-center gap-1 rounded-md bg-primary text-primary-foreground px-2.5 py-1.5 text-xs font-semibold hover:bg-primary/90">
+                    <Receipt className="h-3.5 w-3.5" /> Facturar
                   </button>
                   <button onClick={() => finishJob(j.id)} className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:text-emerald-700">
                     <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar

@@ -89,7 +89,7 @@ function Dashboard() {
       <main className="mx-auto max-w-7xl px-6 py-6">
         {tab === "chat" && <AIChat onDone={() => setTab("form")} />}
         {tab === "form" && <WorkForm onDone={() => setTab("invoice")} />}
-        {tab === "services" && <Services />}
+        {tab === "services" && <Services onGoInvoice={() => setTab("invoice")} />}
         {tab === "invoice" && <Invoice />}
       </main>
     </div>
