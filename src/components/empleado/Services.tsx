@@ -105,9 +105,14 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
   };
   const finishJob = async (id: string) => updateJob(id, { status: "finalizado" });
   const addPlate = async () => {
-    if (!newPlate.plate.trim()) return toast.error("Placa requerida");
+    const isVeh = newPlate.kind === "vehiculo";
+    if (isVeh && !newPlate.plate.trim()) return toast.error("Placa requerida");
+    if (!isVeh && !newPlate.customer.trim()) return toast.error("Nombre del cliente/empresa requerido");
+    const ref = isVeh
+      ? newPlate.plate.toUpperCase()
+      : `SVR-${Date.now().toString().slice(-5)}`;
     const { error } = await supabase.from("active_jobs").insert({
-      plate: newPlate.plate.toUpperCase(),
+      plate: ref,
       customer: newPlate.customer || null,
       service_type: newPlate.service_type,
       service_name: newPlate.service_name,
@@ -115,9 +120,27 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
       progress: 10,
     });
     if (error) return toast.error(error.message);
-    toast.success("Placa agregada al tablero");
-    setNewPlate({ plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
+    toast.success(isVeh ? "Placa agregada al tablero" : "Servicio sin vehículo agregado");
+    setNewPlate({ kind: newPlate.kind, plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
     load();
+  };
+
+  // Enviar este servicio al módulo de Factura
+  const goInvoice = (j: Job) => {
+    store.setForm({
+      plate: j.plate,
+      customer: j.customer ?? "",
+      proceso: (j.service_type as any) === "instalacion" ? "instalacion"
+        : (j.service_type as any) === "garantia" ? "garantia"
+        : (j.service_type as any) === "escaneo_fugas" ? "escaneo_fugas"
+        : (j.service_type as any) === "mantenimiento" ? "mantenimiento"
+        : "revision",
+      procesoValor: 0,
+      manoObra: false,
+      notes: j.service_name ?? "",
+    });
+    toast.success(`Datos de ${j.plate} cargados en Factura`);
+    onGoInvoice?.();
   };
   const openDelay = (j: Job) => {
     setDelayJob(j);
