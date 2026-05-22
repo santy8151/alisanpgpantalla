@@ -14,7 +14,7 @@ type Tab = "dashboard" | "catalog" | "invoices";
 
 function AdminArea() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("catalog");
+  const [tab, setTab] = useState<Tab>("dashboard");
 
   useEffect(() => {
     const a = sessionStorage.getItem("emp_auth");
