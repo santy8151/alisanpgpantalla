@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, LogOut, Shield, Package, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, LogOut, Shield, Package, FileSpreadsheet, Users } from "lucide-react";
 import CatalogManager from "@/components/admin/CatalogManager";
 import InvoiceHistory from "@/components/admin/InvoiceHistory";
+import CustomerDashboard from "@/components/admin/CustomerDashboard";
 
 export const Route = createFileRoute("/admin")({
   component: AdminArea,
