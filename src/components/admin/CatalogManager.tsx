@@ -224,6 +224,39 @@ export default function CatalogManager() {
         </div>
       </div>
 
+      {/* Importar CSV estilo Siigo */}
+      <div className="rounded-lg border bg-card">
+        <div className="border-b px-5 py-3 flex items-center gap-2">
+          <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+          <h2 className="font-semibold">Importar catálogo desde Siigo (CSV)</h2>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Sube el archivo CSV exportado desde Siigo (o cualquier CSV con columnas <b>nombre</b>, <b>precio</b>, opcional <b>categoria</b> y <b>minutos</b>).
+            Los productos existentes se <b>actualizan por nombre</b> manteniendo sus imágenes; los nuevos se crean. Las imágenes se siguen
+            subiendo/editando manualmente desde las tarjetas.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => csvRef.current?.click()}
+              disabled={importing}
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-600 text-white text-sm font-semibold px-4 py-2 hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <Upload className="h-4 w-4" /> {importing ? "Importando…" : "Subir archivo CSV"}
+            </button>
+            <input ref={csvRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleCsvImport(e.target.files[0])} />
+            <button onClick={downloadTemplate} className="inline-flex items-center gap-2 rounded-md border text-sm px-3 py-2 hover:bg-accent">
+              <Download className="h-4 w-4" /> Descargar plantilla
+            </button>
+            {importReport && (
+              <span className="text-xs text-muted-foreground">
+                ✓ <b className="text-emerald-600">{importReport.created}</b> nuevos · <b className="text-primary">{importReport.updated}</b> actualizados · <b>{importReport.skipped}</b> omitidos
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Listado */}
       <div className="rounded-lg border bg-card overflow-hidden">
         <div className="border-b px-5 py-3 flex items-center gap-3 flex-wrap">
