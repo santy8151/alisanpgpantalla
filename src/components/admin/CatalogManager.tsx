@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Package, Image as ImageIcon, Upload, LayoutGrid, List } from "lucide-react";
+import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Package, Image as ImageIcon, Upload, LayoutGrid, List, FileSpreadsheet, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { productImageFor } from "@/lib/productImages";
