@@ -30,6 +30,7 @@ const groups: { key: keyof FormData; cat: string; label: string }[] = [
 export default function WorkForm({ onDone }: { onDone: () => void }) {
   const [prices, setPrices] = useState<Price[]>([]);
   const [jobs, setJobs] = useState<ActiveJob[]>([]);
+  const [loadedJobId, setLoadedJobId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(() => store.getForm() ?? {
     plate: "",
     customer: "",
@@ -63,6 +64,7 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
 
   const loadFromJob = (j: ActiveJob) => {
     const fd = (j.form_data ?? {}) as Partial<FormData>;
+    setLoadedJobId(j.id);
     setForm({
       plate: j.plate,
       customer: j.customer ?? "",
@@ -77,8 +79,9 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
       manoObra: fd.manoObra ?? true,
       notes: fd.notes ?? (j.service_name ?? ""),
     });
-    toast.success(`Datos de ${j.plate} cargados`);
+    toast.success(`${j.plate} cargado · completa el servicio realizado`);
   };
+
 
   const update = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
