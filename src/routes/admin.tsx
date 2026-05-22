@@ -10,7 +10,7 @@ export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Área administrativa | Alisan PG" }] }),
 });
 
-type Tab = "catalog" | "invoices";
+type Tab = "dashboard" | "catalog" | "invoices";
 
 function AdminArea() {
   const navigate = useNavigate();
