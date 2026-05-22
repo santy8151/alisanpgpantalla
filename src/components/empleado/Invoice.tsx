@@ -54,7 +54,25 @@ export default function Invoice() {
   const iva = subtotal * 0.19;
   const total = subtotal + iva;
 
+  const NEQUI_DESTINO = "3044457841";
+
   const pay = () => {
+    if (method === "pse") {
+      const url = `https://www.pse.com.co/persona?monto=${encodeURIComponent(Math.round(total))}&ref=${invoiceNo}`;
+      toast.info("Redirigiendo a PSE de tu banco…");
+      window.open(url, "_blank", "noopener,noreferrer");
+      setPaying(true);
+      setTimeout(() => { setPaying(false); setPaid(true); toast.success("Pago PSE confirmado ✓"); }, 2500);
+      return;
+    }
+    if (method === "nequi") {
+      const url = `https://recarga.nequi.com.co/bdigital/PayWithNequi?phone=${NEQUI_DESTINO}&amount=${Math.round(total)}&reference=${invoiceNo}`;
+      toast.info(`Enviando a Nequi ${NEQUI_DESTINO} · ${fmt(total)}`);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setPaying(true);
+      setTimeout(() => { setPaying(false); setPaid(true); toast.success("Pago Nequi confirmado ✓"); }, 2500);
+      return;
+    }
     setPaying(true);
     setTimeout(() => {
       setPaying(false);
@@ -433,14 +451,28 @@ export default function Invoice() {
                 </div>
               )}
               {method === "pse" && (
-                <select className="input">
-                  <option>Bancolombia</option>
-                  <option>Davivienda</option>
-                  <option>Banco de Bogotá</option>
-                </select>
+                <div className="space-y-2">
+                  <select className="input">
+                    <option>Bancolombia</option>
+                    <option>Davivienda</option>
+                    <option>Banco de Bogotá</option>
+                    <option>BBVA</option>
+                    <option>Banco Popular</option>
+                  </select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Al pagar se abrirá el portal PSE de tu banco con el valor <b>{fmt(total)}</b>.
+                  </p>
+                </div>
               )}
               {method === "nequi" && (
-                <input className="input" placeholder="Número Nequi" defaultValue="3001234567" />
+                <div className="space-y-2">
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 text-xs">
+                    <p className="text-muted-foreground">Cuenta Nequi destino</p>
+                    <p className="font-mono font-bold text-base text-primary">{NEQUI_DESTINO}</p>
+                    <p className="text-muted-foreground mt-1">Valor a transferir: <b>{fmt(total)}</b></p>
+                  </div>
+                  <input className="input" placeholder="Tu número Nequi" defaultValue="3001234567" />
+                </div>
               )}
 
               <div className="rounded-lg bg-muted/50 p-3 text-sm flex justify-between">
