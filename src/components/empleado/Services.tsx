@@ -264,6 +264,9 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                   <button onClick={() => openCall(j)} className="inline-flex items-center gap-1 rounded-md bg-destructive text-destructive-foreground px-2.5 py-1.5 text-xs font-semibold hover:bg-destructive/90">
                     <Megaphone className="h-3.5 w-3.5" /> Llamar cliente
                   </button>
+                  <button onClick={() => goInvoice(j)} className="inline-flex items-center gap-1 rounded-md bg-primary text-primary-foreground px-2.5 py-1.5 text-xs font-semibold hover:bg-primary/90">
+                    <Receipt className="h-3.5 w-3.5" /> Facturar
+                  </button>
                   <button onClick={() => finishJob(j.id)} className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:text-emerald-700">
                     <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
                   </button>
