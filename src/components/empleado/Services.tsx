@@ -53,6 +53,10 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
   const [workJob, setWorkJob] = useState<Job | null>(null);
   const [workData, setWorkData] = useState<JobFormData>({});
 
+  // Asignar un producto del catálogo a placas activas
+  const [assignService, setAssignService] = useState<Service | null>(null);
+  const [assignSel, setAssignSel] = useState<Record<string, boolean>>({});
+
   // Crear nueva placa / servicio
   const [newPlate, setNewPlate] = useState({ kind: "vehiculo" as "vehiculo" | "cliente", plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
 
@@ -205,6 +209,52 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
     setWorkJob(null);
     load();
   };
+
+  // Mapa categoría -> campo en form_data
+  const CAT_TO_KEY: Record<string, keyof JobFormData> = {
+    compresor: "compresorId",
+    evaporador: "evaporadorId",
+    condensador: "condensadorId",
+    ventilador: "ventiladorId",
+    trompo: "trompoId",
+    instalacion: "instalacionId",
+  };
+
+  const openAssign = (s: Service) => {
+    const key = CAT_TO_KEY[s.category];
+    setAssignService(s);
+    const sel: Record<string, boolean> = {};
+    if (key) {
+      for (const j of jobs) {
+        const fd = (j.form_data ?? {}) as JobFormData;
+        sel[j.id] = (fd as any)[key] === s.id;
+      }
+    }
+    setAssignSel(sel);
+  };
+
+  const saveAssign = async () => {
+    if (!assignService) return;
+    const key = CAT_TO_KEY[assignService.category];
+    if (!key) { toast.error("Esta categoría no se asigna directamente a placas"); return; }
+    let changed = 0;
+    for (const j of jobs) {
+      const fd = { ...((j.form_data ?? {}) as JobFormData) };
+      const wants = !!assignSel[j.id];
+      const hasIt = (fd as any)[key] === assignService.id;
+      if (wants && !hasIt) (fd as any)[key] = assignService.id;
+      else if (!wants && hasIt) delete (fd as any)[key];
+      else continue;
+      const { error } = await supabase.from("active_jobs").update({ form_data: fd as any } as any).eq("id", j.id);
+      if (error) { toast.error(error.message); return; }
+      changed++;
+    }
+    if (!changed) { setAssignService(null); return; }
+    toast.success("Producto asignado a las placas seleccionadas");
+    setAssignService(null);
+    load();
+  };
+
 
   const openDelay = (j: Job) => {
     setDelayJob(j);
@@ -510,6 +560,35 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
 
 
 
+      {/* ====== Modal asignar producto del catálogo a placas activas ====== */}
+      {assignService && (
+        <Modal onClose={() => setAssignService(null)} title={`Asignar a placa · ${assignService.name}`}>
+          <p className="text-sm text-muted-foreground mb-3">
+            Marca las placas activas a las que se les instaló o utilizó este {assignService.category}. Se guardará en el trabajo y aparecerá en la factura.
+          </p>
+          {jobs.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No hay placas activas en el tablero.</p>
+          ) : (
+            <div className="space-y-1.5 max-h-[50vh] overflow-auto">
+              {jobs.map((j) => (
+                <label key={j.id} className="flex items-center gap-3 rounded-md border p-2 cursor-pointer hover:bg-accent">
+                  <input type="checkbox" checked={!!assignSel[j.id]} onChange={(e) => setAssignSel({ ...assignSel, [j.id]: e.target.checked })} />
+                  <span className="rounded border-2 border-foreground bg-yellow-300 px-2 py-0.5 font-mono text-xs font-black text-black">{j.plate}</span>
+                  <span className="text-sm flex-1 truncate">
+                    {j.service_name ?? j.service_type}
+                    {j.customer && <span className="text-muted-foreground"> · {j.customer}</span>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="mt-4 flex justify-end gap-2">
+            <button onClick={() => setAssignService(null)} className="rounded-md border px-3 py-1.5 text-sm">Cancelar</button>
+            <button onClick={saveAssign} className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:bg-primary/90">Guardar asignación</button>
+          </div>
+        </Modal>
+      )}
+
       {/* ====== Catálogo de servicios (existente) ====== */}
       <div className="rounded-lg border bg-card">
         <div className="border-b px-5 py-3 flex items-center gap-2">
@@ -593,6 +672,11 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex justify-end gap-1">
+                          {CAT_TO_KEY[s.category] && (
+                            <button onClick={() => openAssign(s)} title="Asignar a placa activa" className="inline-flex items-center gap-1 rounded-md border-2 border-primary/40 px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10">
+                              <ClipboardList className="h-3.5 w-3.5" /> Trabajo
+                            </button>
+                          )}
                           <button onClick={() => startEdit(s)} className="p-1.5 rounded hover:bg-muted"><Pencil className="h-4 w-4" /></button>
                           <button onClick={() => remove(s.id)} className="p-1.5 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-4 w-4" /></button>
                         </div>
