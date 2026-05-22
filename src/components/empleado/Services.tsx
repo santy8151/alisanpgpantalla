@@ -49,8 +49,13 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
   const [callJob, setCallJob] = useState<Job | null>(null);
   const [callBay, setCallBay] = useState("Bahía 1");
 
+  // Configurar trabajo (productos + valor + notas) por job
+  const [workJob, setWorkJob] = useState<Job | null>(null);
+  const [workData, setWorkData] = useState<JobFormData>({});
+
   // Crear nueva placa / servicio
   const [newPlate, setNewPlate] = useState({ kind: "vehiculo" as "vehiculo" | "cliente", plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
+
 
   const load = async () => {
     setLoading(true);
