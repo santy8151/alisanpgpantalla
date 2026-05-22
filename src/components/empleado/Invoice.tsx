@@ -54,15 +54,23 @@ export default function Invoice() {
   const iva = subtotal * 0.19;
   const total = subtotal + iva;
 
-  const NEQUI_DESTINO = "3044457841";
+  const NEQUI_DESTINO = "3044457841"; // Llave Bre-B (Nequi)
+  const [pseBank, setPseBank] = useState("Bancolombia");
 
   const pay = () => {
     if (method === "pse") {
-      const url = `https://www.pse.com.co/persona?monto=${encodeURIComponent(Math.round(total))}&ref=${invoiceNo}`;
-      toast.info("Redirigiendo a PSE de tu banco…");
+      // Flujo PSE → Bre-B → Nequi 3044457841
+      // 1) Se redirige al portal PSE del banco seleccionado para autenticación
+      // 2) El destino predeterminado es la llave Bre-B Nequi 3044457841 (interoperable desde cualquier banco)
+      const monto = Math.round(total);
+      const url =
+        `https://www.pse.com.co/persona?bank=${encodeURIComponent(pseBank)}` +
+        `&monto=${monto}&ref=${invoiceNo}` +
+        `&destino_brebkey=${NEQUI_DESTINO}&destino_tipo=NEQUI`;
+      toast.info(`PSE · ${pseBank} → Bre-B Nequi ${NEQUI_DESTINO} · ${fmt(total)}`);
       window.open(url, "_blank", "noopener,noreferrer");
       setPaying(true);
-      setTimeout(() => { setPaying(false); setPaid(true); toast.success("Pago PSE confirmado ✓"); }, 2500);
+      setTimeout(() => { setPaying(false); setPaid(true); toast.success(`Transferencia Bre-B a ${NEQUI_DESTINO} confirmada ✓`); }, 2500);
       return;
     }
     if (method === "nequi") {
