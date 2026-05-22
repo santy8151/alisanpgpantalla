@@ -18,7 +18,7 @@ export default function Invoice() {
   const [form, setForm] = useState<FormData | null>(null);
   const [paid, setPaid] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [method, setMethod] = useState<"card" | "pse" | "nequi">("card");
+  const [method, setMethod] = useState<"mercadopago" | "pse" | "nequi">("mercadopago");
   const diagram = store.getDiagram();
   const invoiceNo = useMemo(() => "FAC-" + Date.now().toString().slice(-6), []);
 
@@ -55,13 +55,20 @@ export default function Invoice() {
   const total = subtotal + iva;
 
   const NEQUI_DESTINO = "3044457841"; // Llave Bre-B (Nequi)
+  const MP_STORE_URL = "https://link.mercadopago.com.co/alisanpg"; // Tienda Mercado Pago Alisan PG
   const [pseBank, setPseBank] = useState("Bancolombia");
 
   const pay = () => {
+    if (method === "mercadopago") {
+      const monto = Math.round(total);
+      const url = `${MP_STORE_URL}?amount=${monto}&reference=${invoiceNo}&description=${encodeURIComponent(`Servicio ${form?.plate ?? ""}`)}`;
+      toast.info(`Mercado Pago · ${fmt(total)} · Ref ${invoiceNo}`);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setPaying(true);
+      setTimeout(() => { setPaying(false); setPaid(true); toast.success("Pago confirmado en Mercado Pago ✓"); }, 2500);
+      return;
+    }
     if (method === "pse") {
-      // Flujo PSE → Bre-B → Nequi 3044457841
-      // 1) Se redirige al portal PSE del banco seleccionado para autenticación
-      // 2) El destino predeterminado es la llave Bre-B Nequi 3044457841 (interoperable desde cualquier banco)
       const monto = Math.round(total);
       const url =
         `https://www.pse.com.co/persona?bank=${encodeURIComponent(pseBank)}` +
@@ -81,12 +88,6 @@ export default function Invoice() {
       setTimeout(() => { setPaying(false); setPaid(true); toast.success("Pago Nequi confirmado ✓"); }, 2500);
       return;
     }
-    setPaying(true);
-    setTimeout(() => {
-      setPaying(false);
-      setPaid(true);
-      toast.success("Pago aprobado ✓");
-    }, 1800);
   };
 
   const persistInvoice = async () => {
@@ -436,7 +437,7 @@ export default function Invoice() {
           ) : (
             <>
               <div className="grid grid-cols-3 gap-2">
-                {(["card", "pse", "nequi"] as const).map((m) => (
+                {(["mercadopago", "pse", "nequi"] as const).map((m) => (
                   <button
                     key={m}
                     onClick={() => setMethod(m)}
@@ -444,17 +445,19 @@ export default function Invoice() {
                       method === m ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-accent"
                     }`}
                   >
-                    {m === "card" ? "Tarjeta" : m === "pse" ? "PSE" : "Nequi"}
+                    {m === "mercadopago" ? "Mercado Pago" : m === "pse" ? "PSE" : "Nequi"}
                   </button>
                 ))}
               </div>
 
-              {method === "card" && (
+              {method === "mercadopago" && (
                 <div className="space-y-2">
-                  <input className="input" placeholder="Número de tarjeta" defaultValue="4111 1111 1111 1111" />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input className="input" placeholder="MM/AA" defaultValue="12/28" />
-                    <input className="input" placeholder="CVV" defaultValue="123" />
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs">
+                    <p className="font-bold text-sm text-primary">Tienda Mercado Pago Alisan PG</p>
+                    <p className="text-muted-foreground mt-1">
+                      Al pagar se abrirá nuestro checkout de Mercado Pago. Allí ya está configurada la cuenta destino, métodos disponibles (tarjeta, PSE, Nequi, saldo MP) y la confirmación automática.
+                    </p>
+                    <p className="text-muted-foreground mt-2">Valor: <b>{fmt(total)}</b> · Ref: <b>{invoiceNo}</b></p>
                   </div>
                 </div>
               )}
