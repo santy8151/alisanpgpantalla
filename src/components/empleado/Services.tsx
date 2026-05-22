@@ -28,7 +28,7 @@ type Job = {
 
 const CATEGORIES = ["compresor","evaporador","condensador","ventilador","trompo","instalacion","otro"];
 
-export default function Services() {
+export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } = {}) {
   const [items, setItems] = useState<Service[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,8 +44,8 @@ export default function Services() {
   const [callJob, setCallJob] = useState<Job | null>(null);
   const [callBay, setCallBay] = useState("Bahía 1");
 
-  // Crear nueva placa
-  const [newPlate, setNewPlate] = useState({ plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
+  // Crear nueva placa / servicio
+  const [newPlate, setNewPlate] = useState({ kind: "vehiculo" as "vehiculo" | "cliente", plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
 
   const load = async () => {
     setLoading(true);
