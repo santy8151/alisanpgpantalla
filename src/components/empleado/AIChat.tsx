@@ -123,7 +123,7 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
                   </div>
                 )}
                 {"diagrams" in m && (
-                  <div className="grid grid-cols-1 gap-3 mt-1 max-w-md">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-1 w-full max-w-3xl">
                     {m.diagrams.map((d) => {
                       const isSel = selectedId === d.id;
                       return (
