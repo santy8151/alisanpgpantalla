@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Megaphone, AlertTriangle, Car, MessageSquare, CheckCircle2, Receipt, User } from "lucide-react";
-import { store } from "@/lib/workOrderStore";
+import { useEffect, useMemo, useState } from "react";
+import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Megaphone, AlertTriangle, Car, MessageSquare, CheckCircle2, Receipt, User, ClipboardList } from "lucide-react";
+import { store, type FormData as WOFormData, type ProcesoTipo, PROCESO_LABELS } from "@/lib/workOrderStore";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 type Service = {
   id: string;
