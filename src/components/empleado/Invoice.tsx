@@ -54,7 +54,25 @@ export default function Invoice() {
   const iva = subtotal * 0.19;
   const total = subtotal + iva;
 
+  const NEQUI_DESTINO = "3044457841";
+
   const pay = () => {
+    if (method === "pse") {
+      const url = `https://www.pse.com.co/persona?monto=${encodeURIComponent(Math.round(total))}&ref=${invoiceNo}`;
+      toast.info("Redirigiendo a PSE de tu banco…");
+      window.open(url, "_blank", "noopener,noreferrer");
+      setPaying(true);
+      setTimeout(() => { setPaying(false); setPaid(true); toast.success("Pago PSE confirmado ✓"); }, 2500);
+      return;
+    }
+    if (method === "nequi") {
+      const url = `https://recarga.nequi.com.co/bdigital/PayWithNequi?phone=${NEQUI_DESTINO}&amount=${Math.round(total)}&reference=${invoiceNo}`;
+      toast.info(`Enviando a Nequi ${NEQUI_DESTINO} · ${fmt(total)}`);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setPaying(true);
+      setTimeout(() => { setPaying(false); setPaid(true); toast.success("Pago Nequi confirmado ✓"); }, 2500);
+      return;
+    }
     setPaying(true);
     setTimeout(() => {
       setPaying(false);
