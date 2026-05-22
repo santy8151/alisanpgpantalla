@@ -148,7 +148,20 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
       progress: 10,
     });
     if (error) return toast.error(error.message);
-    toast.success(isVeh ? "Placa agregada al tablero" : "Servicio sin vehículo agregado");
+
+    // Crear entrada automática en catálogo de servicios para esta placa/cliente
+    const cat = CATEGORIES.includes(newPlate.service_type) ? newPlate.service_type : "otro";
+    const who = newPlate.customer ? ` · ${newPlate.customer}` : "";
+    const catalogName = `${ref}${who} — ${newPlate.service_name}`;
+    const { error: catErr } = await supabase.from("service_prices").insert({
+      name: catalogName,
+      category: cat,
+      price: 0,
+      delivery_minutes: Number(newPlate.estimated_minutes),
+    });
+    if (catErr) toast.error(`Catálogo: ${catErr.message}`);
+
+    toast.success(isVeh ? "Placa agregada al tablero y catálogo" : "Servicio agregado al tablero y catálogo");
     setNewPlate({ kind: newPlate.kind, plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
     load();
   };
