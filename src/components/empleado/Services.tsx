@@ -589,26 +589,6 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
         </Modal>
       )}
 
-      {/* ====== Catálogo de servicios (existente) ====== */}
-      <div className="rounded-lg border bg-card">
-        <div className="border-b px-5 py-3 flex items-center gap-2">
-          <Plus className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">Agregar nuevo servicio</h2>
-        </div>
-        <div className="p-5 grid sm:grid-cols-5 gap-3">
-          <select value={creating.category} onChange={(e) => setCreating({ ...creating, category: e.target.value })} className="srv-input">
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <input placeholder="Nombre" value={creating.name ?? ""} onChange={(e) => setCreating({ ...creating, name: e.target.value })} className="srv-input sm:col-span-2" />
-          <input type="number" placeholder="Precio" value={creating.price ?? 0} onChange={(e) => setCreating({ ...creating, price: Number(e.target.value) })} className="srv-input" />
-          <div className="flex gap-2">
-            <input type="number" placeholder="Min." value={creating.delivery_minutes ?? 30} onChange={(e) => setCreating({ ...creating, delivery_minutes: Number(e.target.value) })} className="srv-input" />
-            <button onClick={create} className="rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
 
       <div className="rounded-lg border bg-card overflow-hidden">
         <div className="border-b px-5 py-3 flex items-center gap-2">
