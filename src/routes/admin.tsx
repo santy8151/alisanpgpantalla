@@ -54,20 +54,23 @@ function AdminArea() {
             </button>
           </div>
         </div>
-        <div className="mx-auto max-w-7xl px-6 flex gap-1">
+        <div className="mx-auto max-w-7xl px-6 flex gap-1 overflow-x-auto">
           {([
+            { id: "dashboard", label: "Dashboard de clientes", icon: Users },
             { id: "catalog", label: "Productos y servicios", icon: Package },
             { id: "invoices", label: "Facturas (Siigo)", icon: FileSpreadsheet },
           ] as { id: Tab; label: string; icon: any }[]).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm border-b-2 -mb-px ${tab === t.id ? "border-primary text-primary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+              className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm border-b-2 -mb-px whitespace-nowrap ${tab === t.id ? "border-primary text-primary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
               <t.icon className="h-4 w-4" /> {t.label}
             </button>
           ))}
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-6 py-6">
-        {tab === "catalog" ? <CatalogManager /> : <InvoiceHistory />}
+        {tab === "dashboard" && <CustomerDashboard />}
+        {tab === "catalog" && <CatalogManager />}
+        {tab === "invoices" && <InvoiceHistory />}
       </main>
     </div>
   );
