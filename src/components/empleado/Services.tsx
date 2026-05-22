@@ -135,23 +135,63 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
     load();
   };
 
-  // Enviar este servicio al módulo de Factura
+  const inferProceso = (st: string): ProcesoTipo =>
+    st === "instalacion" ? "instalacion"
+    : st === "garantia" ? "garantia"
+    : st === "escaneo_fugas" ? "escaneo_fugas"
+    : st === "mantenimiento" ? "mantenimiento"
+    : "revision";
+
+  // Enviar este servicio al módulo de Factura (usa form_data si existe)
   const goInvoice = (j: Job) => {
+    const fd = (j.form_data ?? {}) as JobFormData;
     store.setForm({
       plate: j.plate,
       customer: j.customer ?? "",
-      proceso: (j.service_type as any) === "instalacion" ? "instalacion"
-        : (j.service_type as any) === "garantia" ? "garantia"
-        : (j.service_type as any) === "escaneo_fugas" ? "escaneo_fugas"
-        : (j.service_type as any) === "mantenimiento" ? "mantenimiento"
-        : "revision",
-      procesoValor: 0,
-      manoObra: false,
-      notes: j.service_name ?? "",
+      proceso: fd.proceso ?? inferProceso(j.service_type),
+      procesoValor: fd.procesoValor ?? 0,
+      compresorId: fd.compresorId,
+      evaporadorId: fd.evaporadorId,
+      condensadorId: fd.condensadorId,
+      ventiladorId: fd.ventiladorId,
+      trompoId: fd.trompoId,
+      instalacionId: fd.instalacionId,
+      manoObra: fd.manoObra ?? false,
+      notes: fd.notes ?? (j.service_name ?? ""),
     });
     toast.success(`Datos de ${j.plate} cargados en Factura`);
     onGoInvoice?.();
   };
+
+  // Abrir modal de configurar trabajo
+  const openWork = (j: Job) => {
+    const fd = (j.form_data ?? {}) as JobFormData;
+    setWorkJob(j);
+    setWorkData({
+      proceso: fd.proceso ?? inferProceso(j.service_type),
+      procesoValor: fd.procesoValor ?? 0,
+      compresorId: fd.compresorId,
+      evaporadorId: fd.evaporadorId,
+      condensadorId: fd.condensadorId,
+      ventiladorId: fd.ventiladorId,
+      trompoId: fd.trompoId,
+      instalacionId: fd.instalacionId,
+      manoObra: fd.manoObra ?? false,
+      notes: fd.notes ?? "",
+    });
+  };
+  const saveWork = async () => {
+    if (!workJob) return;
+    const { error } = await supabase
+      .from("active_jobs")
+      .update({ form_data: workData as any } as any)
+      .eq("id", workJob.id);
+    if (error) return toast.error(error.message);
+    toast.success("Trabajo guardado en el servicio");
+    setWorkJob(null);
+    load();
+  };
+
   const openDelay = (j: Job) => {
     setDelayJob(j);
     setDelayMsg(j.delay_message ?? "");
