@@ -86,15 +86,44 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
   const update = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const submit = () => {
+  const submit = async () => {
     if (!form.plate || !form.customer) {
       toast.error("Placa y cliente son obligatorios");
       return;
     }
     store.setForm(form);
-    toast.success("Formulario guardado. Generando factura…");
+
+    // Persistir el trabajo realizado en la placa activa (si vino del tablero)
+    if (loadedJobId) {
+      await supabase
+        .from("active_jobs")
+        .update({ form_data: form as any } as any)
+        .eq("id", loadedJobId);
+    }
+
+    // Crear entrada en catálogo de servicios como consecuencia del trabajo
+    const selectedProducts = groups
+      .map((g) => prices.find((p) => p.id === (form[g.key] as string | undefined)))
+      .filter(Boolean) as Price[];
+    const productNames = selectedProducts.map((p) => p.name).join(" + ");
+    const procesoLabel = form.proceso ? PROCESO_LABELS[form.proceso] : "Servicio";
+    const catalogName = `${form.plate} · ${form.customer} — ${procesoLabel}${productNames ? ` (${productNames})` : ""}`;
+    const totalProductos = selectedProducts.reduce((s, p) => s + Number(p.price || 0), 0);
+    const totalPrice = Number(form.procesoValor ?? 0) + totalProductos;
+    const category = selectedProducts[0]?.category ?? (form.proceso ?? "otro");
+
+    const { error: catErr } = await supabase.from("service_prices").insert({
+      name: catalogName,
+      category,
+      price: totalPrice,
+      delivery_minutes: 30,
+    });
+    if (catErr) toast.error(`Catálogo: ${catErr.message}`);
+    else toast.success("Servicio registrado en catálogo · Generando factura…");
+
     onDone();
   };
+
 
   return (
     <div className="grid gap-4">
