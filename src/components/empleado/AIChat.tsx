@@ -53,19 +53,19 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
     setInput("");
     setAttached([]);
     setLoading(true);
-    setMessages((m) => [...m, { role: "ai", text: `Generando diagrama…` }]);
+    setMessages((m) => [...m, { role: "ai", text: `Generando 12 diagramas…` }]);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-diagrams", {
-        body: { prompt, count: 1, model, images: imgs },
+        body: { prompt, count: 12, model, images: imgs },
       });
       if (error) throw error;
       const diagrams = (data?.diagrams ?? []) as Diagram[];
-      if (!diagrams.length) throw new Error("No se generó el diagrama");
+      if (!diagrams.length) throw new Error("No se generaron diagramas");
       setMessages((m) => [
         ...m,
-        { role: "ai", text: `Listo. Pulsa "Elegir esta imagen" para continuar:` },
-        { role: "ai", diagrams: diagrams.slice(0, 1) },
+        { role: "ai", text: `Listo. Aquí tienes ${diagrams.length} opciones — elige la que mejor te sirva:` },
+        { role: "ai", diagrams },
       ]);
     } catch (e) {
       console.error(e);
@@ -123,7 +123,7 @@ export default function AIChat({ onDone }: { onDone: () => void }) {
                   </div>
                 )}
                 {"diagrams" in m && (
-                  <div className="grid grid-cols-1 gap-3 mt-1 max-w-md">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-1 w-full max-w-3xl">
                     {m.diagrams.map((d) => {
                       const isSel = selectedId === d.id;
                       return (
