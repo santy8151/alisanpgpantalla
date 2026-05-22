@@ -29,6 +29,7 @@ const groups: { key: keyof FormData; cat: string; label: string }[] = [
 
 export default function WorkForm({ onDone }: { onDone: () => void }) {
   const [prices, setPrices] = useState<Price[]>([]);
+  const [jobs, setJobs] = useState<ActiveJob[]>([]);
   const [form, setForm] = useState<FormData>(() => store.getForm() ?? {
     plate: "",
     customer: "",
@@ -37,13 +38,47 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
   });
   const diagram = store.getDiagram();
 
+  const loadJobs = async () => {
+    const { data } = await supabase
+      .from("active_jobs")
+      .select("*")
+      .neq("status", "finalizado")
+      .order("created_at");
+    setJobs((data as ActiveJob[]) ?? []);
+  };
+
   useEffect(() => {
     supabase
       .from("service_prices")
       .select("*")
       .order("category")
       .then(({ data }) => setPrices((data as Price[]) ?? []));
+    loadJobs();
+    const ch = supabase
+      .channel("workform_jobs")
+      .on("postgres_changes", { event: "*", schema: "public", table: "active_jobs" }, () => loadJobs())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
+
+  const loadFromJob = (j: ActiveJob) => {
+    const fd = (j.form_data ?? {}) as Partial<FormData>;
+    setForm({
+      plate: j.plate,
+      customer: j.customer ?? "",
+      proceso: fd.proceso,
+      procesoValor: fd.procesoValor,
+      compresorId: fd.compresorId,
+      evaporadorId: fd.evaporadorId,
+      condensadorId: fd.condensadorId,
+      ventiladorId: fd.ventiladorId,
+      trompoId: fd.trompoId,
+      instalacionId: fd.instalacionId,
+      manoObra: fd.manoObra ?? true,
+      notes: fd.notes ?? (j.service_name ?? ""),
+    });
+    toast.success(`Datos de ${j.plate} cargados`);
+  };
 
   const update = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
