@@ -1,16 +1,17 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, LogOut, Shield, Package, FileSpreadsheet, Users } from "lucide-react";
+import { ArrowLeft, LogOut, Shield, Package, FileSpreadsheet, Users, Settings } from "lucide-react";
 import CatalogManager from "@/components/admin/CatalogManager";
 import InvoiceHistory from "@/components/admin/InvoiceHistory";
 import CustomerDashboard from "@/components/admin/CustomerDashboard";
+import Services from "@/components/empleado/Services";
 
 export const Route = createFileRoute("/admin")({
   component: AdminArea,
   head: () => ({ meta: [{ title: "Área administrativa | Alisan PG" }] }),
 });
 
-type Tab = "dashboard" | "catalog" | "invoices";
+type Tab = "dashboard" | "catalog" | "services" | "invoices";
 
 function AdminArea() {
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ function AdminArea() {
           {([
             { id: "dashboard", label: "Dashboard de clientes", icon: Users },
             { id: "catalog", label: "Productos y servicios", icon: Package },
+            { id: "services", label: "Servicios y tiempos", icon: Settings },
             { id: "invoices", label: "Facturas (Siigo)", icon: FileSpreadsheet },
           ] as { id: Tab; label: string; icon: any }[]).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -70,6 +72,7 @@ function AdminArea() {
       <main className="mx-auto max-w-7xl px-6 py-6">
         {tab === "dashboard" && <CustomerDashboard />}
         {tab === "catalog" && <CatalogManager />}
+        {tab === "services" && <Services onGoInvoice={() => setTab("invoices")} />}
         {tab === "invoices" && <InvoiceHistory />}
       </main>
     </div>
