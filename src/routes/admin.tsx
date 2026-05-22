@@ -1,16 +1,17 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, LogOut, Shield, Package, FileSpreadsheet, Users } from "lucide-react";
+import { ArrowLeft, LogOut, Shield, Package, FileSpreadsheet, Users, Settings } from "lucide-react";
 import CatalogManager from "@/components/admin/CatalogManager";
 import InvoiceHistory from "@/components/admin/InvoiceHistory";
 import CustomerDashboard from "@/components/admin/CustomerDashboard";
+import Services from "@/components/empleado/Services";
 
 export const Route = createFileRoute("/admin")({
   component: AdminArea,
   head: () => ({ meta: [{ title: "Área administrativa | Alisan PG" }] }),
 });
 
-type Tab = "dashboard" | "catalog" | "invoices";
+type Tab = "dashboard" | "catalog" | "services" | "invoices";
 
 function AdminArea() {
   const navigate = useNavigate();
