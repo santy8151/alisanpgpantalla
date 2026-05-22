@@ -173,25 +173,52 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
         </div>
 
         {/* Form rápido */}
-        <div className="border-b p-4 grid sm:grid-cols-5 gap-2 bg-muted/20">
-          <input placeholder="Placa" value={newPlate.plate}
-            onChange={(e) => setNewPlate({ ...newPlate, plate: e.target.value.toUpperCase() })}
-            className="srv-input" />
-          <input placeholder="Cliente" value={newPlate.customer}
-            onChange={(e) => setNewPlate({ ...newPlate, customer: e.target.value })}
-            className="srv-input" />
-          <select value={newPlate.service_type}
-            onChange={(e) => setNewPlate({ ...newPlate, service_type: e.target.value })}
-            className="srv-input">
-            <option value="revision">Revisión</option>
-            <option value="instalacion">Instalación</option>
-          </select>
-          <input type="number" placeholder="Minutos" value={newPlate.estimated_minutes}
-            onChange={(e) => setNewPlate({ ...newPlate, estimated_minutes: Number(e.target.value) })}
-            className="srv-input" />
-          <button onClick={addPlate} className="rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90">
-            <Plus className="inline h-4 w-4" /> Agregar placa
-          </button>
+        <div className="border-b p-4 space-y-3 bg-muted/20">
+          <div className="inline-flex rounded-md border bg-background p-1 text-xs">
+            <button
+              onClick={() => setNewPlate({ ...newPlate, kind: "vehiculo" })}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded ${newPlate.kind === "vehiculo" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground"}`}
+            >
+              <Car className="h-3.5 w-3.5" /> Vehículo (placa)
+            </button>
+            <button
+              onClick={() => setNewPlate({ ...newPlate, kind: "cliente" })}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded ${newPlate.kind === "cliente" ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground"}`}
+            >
+              <User className="h-3.5 w-3.5" /> Cliente / empresa (sin vehículo)
+            </button>
+          </div>
+          <div className="grid sm:grid-cols-5 gap-2">
+            {newPlate.kind === "vehiculo" ? (
+              <input placeholder="Placa" value={newPlate.plate}
+                onChange={(e) => setNewPlate({ ...newPlate, plate: e.target.value.toUpperCase() })}
+                className="srv-input" />
+            ) : (
+              <input placeholder="Empresa / Persona" value={newPlate.customer}
+                onChange={(e) => setNewPlate({ ...newPlate, customer: e.target.value })}
+                className="srv-input" />
+            )}
+            <input placeholder={newPlate.kind === "vehiculo" ? "Cliente" : "Contacto (opcional)"} value={newPlate.kind === "vehiculo" ? newPlate.customer : ""}
+              onChange={(e) => setNewPlate({ ...newPlate, customer: e.target.value })}
+              className="srv-input"
+              disabled={newPlate.kind === "cliente"} />
+            <select value={newPlate.service_type}
+              onChange={(e) => setNewPlate({ ...newPlate, service_type: e.target.value })}
+              className="srv-input">
+              <option value="revision">Revisión</option>
+              <option value="instalacion">Instalación</option>
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="garantia">Garantía</option>
+              <option value="escaneo_fugas">Escaneo de fugas</option>
+              <option value="producto">Solo producto</option>
+            </select>
+            <input type="number" placeholder="Minutos" value={newPlate.estimated_minutes}
+              onChange={(e) => setNewPlate({ ...newPlate, estimated_minutes: Number(e.target.value) })}
+              className="srv-input" />
+            <button onClick={addPlate} className="rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90">
+              <Plus className="inline h-4 w-4" /> Agregar
+            </button>
+          </div>
         </div>
 
         {jobs.length === 0 ? (
