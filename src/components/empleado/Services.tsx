@@ -13,6 +13,8 @@ type Service = {
   delivery_minutes: number;
 };
 
+type JobFormData = Partial<WOFormData>;
+
 type Job = {
   id: string;
   plate: string;
@@ -25,7 +27,9 @@ type Job = {
   delay_message: string | null;
   bay: string | null;
   called_at?: string | null;
+  form_data?: JobFormData | null;
 };
+
 
 const CATEGORIES = ["compresor","evaporador","condensador","ventilador","trompo","instalacion","otro"];
 
