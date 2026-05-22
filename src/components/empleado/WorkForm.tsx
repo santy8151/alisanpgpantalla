@@ -1,11 +1,22 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, Receipt, Wrench } from "lucide-react";
+import { ClipboardList, Receipt, Wrench, Car, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { store, type FormData, type ProcesoTipo, PROCESO_LABELS } from "@/lib/workOrderStore";
 import { productImageFor } from "@/lib/productImages";
 import { toast } from "sonner";
 
 type Price = { id: string; category: string; name: string; price: number; image_url?: string | null };
+
+type ActiveJob = {
+  id: string;
+  plate: string;
+  customer: string | null;
+  service_type: string;
+  service_name: string | null;
+  estimated_minutes: number;
+  progress: number;
+  form_data?: Partial<FormData> | null;
+};
 
 const groups: { key: keyof FormData; cat: string; label: string }[] = [
   { key: "compresorId", cat: "compresor", label: "Compresor" },
