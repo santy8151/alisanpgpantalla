@@ -460,15 +460,26 @@ export default function Invoice() {
               )}
               {method === "pse" && (
                 <div className="space-y-2">
-                  <select className="input">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Elige tu banco</p>
+                  <select className="input" value={pseBank} onChange={(e) => setPseBank(e.target.value)}>
                     <option>Bancolombia</option>
                     <option>Davivienda</option>
                     <option>Banco de Bogotá</option>
                     <option>BBVA</option>
                     <option>Banco Popular</option>
+                    <option>Banco AV Villas</option>
+                    <option>Banco Caja Social</option>
+                    <option>Scotiabank Colpatria</option>
                   </select>
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 text-xs">
+                    <p className="text-muted-foreground">Transferencia Bre-B a llave Nequi</p>
+                    <p className="font-mono font-bold text-base text-primary">{NEQUI_DESTINO}</p>
+                    <p className="text-muted-foreground mt-1">
+                      Desde <b>{pseBank}</b> · valor <b>{fmt(total)}</b>
+                    </p>
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Al pagar se abrirá el portal PSE de tu banco con el valor <b>{fmt(total)}</b>.
+                    Se abrirá el portal PSE de tu banco. El destino ya está predeterminado a la llave Bre-B Nequi <b>{NEQUI_DESTINO}</b> por el valor exacto del servicio.
                   </p>
                 </div>
               )}
