@@ -22,6 +22,14 @@ Deno.serve(async (req) => {
       "isometric 3d clean diagram, white background",
       "minimalist line art diagram, monochrome",
       "industrial engineering schematic with labels",
+      "exploded view 3d render, light gray background",
+      "hand-drawn pencil sketch on white paper",
+      "cad-style 2d top view with dimensions",
+      "colorful infographic with arrows and callouts",
+      "dark mode schematic, black background neon lines",
+      "cutaway cross-section illustration, realistic shading",
+      "flat vector diagram with labeled components",
+      "photo-realistic 3d render of the installation",
     ];
 
     const tasks = Array.from({ length: count }).map(async (_, i) => {
