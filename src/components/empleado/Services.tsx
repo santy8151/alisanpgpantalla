@@ -434,6 +434,82 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
         </Modal>
       )}
 
+      {/* ====== Modal Configurar Trabajo (form de trabajo ligado al servicio) ====== */}
+      {workJob && (
+        <Modal onClose={() => setWorkJob(null)} title={`Trabajo realizado · ${workJob.plate}${workJob.customer ? " · " + workJob.customer : ""}`}>
+          <p className="text-sm text-muted-foreground mb-3">
+            Selecciona los productos instalados y el proceso. Esto se llevará a la factura cuando presiones <b>Facturar</b>.
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase text-muted-foreground">Proceso</span>
+              <select className="srv-input mt-1" value={workData.proceso ?? ""} onChange={(e) => setWorkData({ ...workData, proceso: (e.target.value || undefined) as ProcesoTipo | undefined })}>
+                <option value="">—</option>
+                {(Object.keys(PROCESO_LABELS) as ProcesoTipo[]).map((k) => <option key={k} value={k}>{PROCESO_LABELS[k]}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase text-muted-foreground">Valor del proceso (COP)</span>
+              <input type="number" className="srv-input mt-1" value={workData.procesoValor ?? 0} onChange={(e) => setWorkData({ ...workData, procesoValor: Number(e.target.value) })} />
+            </label>
+          </div>
+
+          <div className="space-y-2 max-h-[40vh] overflow-auto pr-1">
+            {([
+              ["compresorId", "compresor", "Compresor"],
+              ["evaporadorId", "evaporador", "Evaporador"],
+              ["condensadorId", "condensador", "Condensador"],
+              ["ventiladorId", "ventilador", "Ventilador"],
+              ["trompoId", "trompo", "Trompo"],
+              ["instalacionId", "instalacion", "Instalación eléctrica"],
+            ] as const).map(([key, cat, label]) => {
+              const opts = items.filter((i) => i.category === cat);
+              return (
+                <label key={key} className="block">
+                  <span className="text-xs font-semibold uppercase text-muted-foreground">{label}</span>
+                  <select
+                    className="srv-input mt-1"
+                    value={(workData as any)[key] ?? ""}
+                    onChange={(e) => setWorkData({ ...workData, [key]: e.target.value || undefined } as JobFormData)}
+                  >
+                    <option value="">— No incluir —</option>
+                    {opts.map((o) => (
+                      <option key={o.id} value={o.id}>{o.name} — ${Number(o.price).toLocaleString("es-CO")}</option>
+                    ))}
+                  </select>
+                </label>
+              );
+            })}
+          </div>
+
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={!!workData.manoObra} onChange={(e) => setWorkData({ ...workData, manoObra: e.target.checked })} />
+            Incluir mano de obra
+          </label>
+
+          <label className="block mt-3">
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Notas</span>
+            <textarea className="srv-input mt-1" rows={2} value={workData.notes ?? ""} onChange={(e) => setWorkData({ ...workData, notes: e.target.value })} />
+          </label>
+
+          <div className="mt-4 flex justify-between gap-2">
+            <button
+              onClick={async () => { await saveWork(); if (workJob) goInvoice({ ...workJob, form_data: workData }); }}
+              className="rounded-md border-2 border-primary text-primary px-3 py-1.5 text-sm font-semibold hover:bg-primary/10"
+            >
+              Guardar e ir a Factura
+            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setWorkJob(null)} className="rounded-md border px-3 py-1.5 text-sm">Cancelar</button>
+              <button onClick={saveWork} className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:bg-primary/90">Guardar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+
+
       {/* ====== Catálogo de servicios (existente) ====== */}
       <div className="rounded-lg border bg-card">
         <div className="border-b px-5 py-3 flex items-center gap-2">
