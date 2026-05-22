@@ -237,7 +237,7 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
     if (!assignService) return;
     const key = CAT_TO_KEY[assignService.category];
     if (!key) { toast.error("Esta categoría no se asigna directamente a placas"); return; }
-    const updates: Promise<any>[] = [];
+    let changed = 0;
     for (const j of jobs) {
       const fd = { ...((j.form_data ?? {}) as JobFormData) };
       const wants = !!assignSel[j.id];
@@ -245,12 +245,11 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
       if (wants && !hasIt) (fd as any)[key] = assignService.id;
       else if (!wants && hasIt) delete (fd as any)[key];
       else continue;
-      updates.push(supabase.from("active_jobs").update({ form_data: fd as any } as any).eq("id", j.id));
+      const { error } = await supabase.from("active_jobs").update({ form_data: fd as any } as any).eq("id", j.id);
+      if (error) { toast.error(error.message); return; }
+      changed++;
     }
-    if (!updates.length) { setAssignService(null); return; }
-    const res = await Promise.all(updates);
-    const err = res.find((r: any) => r.error)?.error;
-    if (err) return toast.error(err.message);
+    if (!changed) { setAssignService(null); return; }
     toast.success("Producto asignado a las placas seleccionadas");
     setAssignService(null);
     load();
