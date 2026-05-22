@@ -437,7 +437,7 @@ export default function Invoice() {
           ) : (
             <>
               <div className="grid grid-cols-3 gap-2">
-                {(["card", "pse", "nequi"] as const).map((m) => (
+                {(["mercadopago", "pse", "nequi"] as const).map((m) => (
                   <button
                     key={m}
                     onClick={() => setMethod(m)}
@@ -445,17 +445,19 @@ export default function Invoice() {
                       method === m ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-accent"
                     }`}
                   >
-                    {m === "card" ? "Tarjeta" : m === "pse" ? "PSE" : "Nequi"}
+                    {m === "mercadopago" ? "Mercado Pago" : m === "pse" ? "PSE" : "Nequi"}
                   </button>
                 ))}
               </div>
 
-              {method === "card" && (
+              {method === "mercadopago" && (
                 <div className="space-y-2">
-                  <input className="input" placeholder="Número de tarjeta" defaultValue="4111 1111 1111 1111" />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input className="input" placeholder="MM/AA" defaultValue="12/28" />
-                    <input className="input" placeholder="CVV" defaultValue="123" />
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs">
+                    <p className="font-bold text-sm text-primary">Tienda Mercado Pago Alisan PG</p>
+                    <p className="text-muted-foreground mt-1">
+                      Al pagar se abrirá nuestro checkout de Mercado Pago. Allí ya está configurada la cuenta destino, métodos disponibles (tarjeta, PSE, Nequi, saldo MP) y la confirmación automática.
+                    </p>
+                    <p className="text-muted-foreground mt-2">Valor: <b>{fmt(total)}</b> · Ref: <b>{invoiceNo}</b></p>
                   </div>
                 </div>
               )}
