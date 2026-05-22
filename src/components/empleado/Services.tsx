@@ -643,6 +643,11 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex justify-end gap-1">
+                          {CAT_TO_KEY[s.category] && (
+                            <button onClick={() => openAssign(s)} title="Asignar a placa activa" className="inline-flex items-center gap-1 rounded-md border-2 border-primary/40 px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10">
+                              <ClipboardList className="h-3.5 w-3.5" /> Trabajo
+                            </button>
+                          )}
                           <button onClick={() => startEdit(s)} className="p-1.5 rounded hover:bg-muted"><Pencil className="h-4 w-4" /></button>
                           <button onClick={() => remove(s.id)} className="p-1.5 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-4 w-4" /></button>
                         </div>
