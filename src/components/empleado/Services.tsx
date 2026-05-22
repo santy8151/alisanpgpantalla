@@ -68,6 +68,20 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
     setLoading(false);
   };
 
+  // Para cada servicio del catálogo, lista de placas/clientes que lo tienen seleccionado
+  const usageByService = useMemo(() => {
+    const map: Record<string, { plate: string; customer: string | null }[]> = {};
+    for (const j of jobs) {
+      const fd = (j.form_data ?? {}) as JobFormData;
+      const ids = [fd.compresorId, fd.evaporadorId, fd.condensadorId, fd.ventiladorId, fd.trompoId, fd.instalacionId].filter(Boolean) as string[];
+      for (const id of ids) {
+        (map[id] ||= []).push({ plate: j.plate, customer: j.customer });
+      }
+    }
+    return map;
+  }, [jobs]);
+
+
   useEffect(() => {
     load();
     const ch = supabase
