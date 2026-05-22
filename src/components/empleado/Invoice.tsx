@@ -18,7 +18,7 @@ export default function Invoice() {
   const [form, setForm] = useState<FormData | null>(null);
   const [paid, setPaid] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [method, setMethod] = useState<"card" | "pse" | "nequi">("card");
+  const [method, setMethod] = useState<"mercadopago" | "pse" | "nequi">("mercadopago");
   const diagram = store.getDiagram();
   const invoiceNo = useMemo(() => "FAC-" + Date.now().toString().slice(-6), []);
 
