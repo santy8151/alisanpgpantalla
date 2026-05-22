@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Megaphone, AlertTriangle, Car, MessageSquare, CheckCircle2 } from "lucide-react";
+import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Megaphone, AlertTriangle, Car, MessageSquare, CheckCircle2, Receipt, User } from "lucide-react";
+import { store } from "@/lib/workOrderStore";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
