@@ -1,11 +1,22 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, Receipt, Wrench } from "lucide-react";
+import { ClipboardList, Receipt, Wrench, Car, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { store, type FormData, type ProcesoTipo, PROCESO_LABELS } from "@/lib/workOrderStore";
 import { productImageFor } from "@/lib/productImages";
 import { toast } from "sonner";
 
 type Price = { id: string; category: string; name: string; price: number; image_url?: string | null };
+
+type ActiveJob = {
+  id: string;
+  plate: string;
+  customer: string | null;
+  service_type: string;
+  service_name: string | null;
+  estimated_minutes: number;
+  progress: number;
+  form_data?: Partial<FormData> | null;
+};
 
 const groups: { key: keyof FormData; cat: string; label: string }[] = [
   { key: "compresorId", cat: "compresor", label: "Compresor" },
@@ -18,6 +29,7 @@ const groups: { key: keyof FormData; cat: string; label: string }[] = [
 
 export default function WorkForm({ onDone }: { onDone: () => void }) {
   const [prices, setPrices] = useState<Price[]>([]);
+  const [jobs, setJobs] = useState<ActiveJob[]>([]);
   const [form, setForm] = useState<FormData>(() => store.getForm() ?? {
     plate: "",
     customer: "",
@@ -26,13 +38,47 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
   });
   const diagram = store.getDiagram();
 
+  const loadJobs = async () => {
+    const { data } = await supabase
+      .from("active_jobs")
+      .select("*")
+      .neq("status", "finalizado")
+      .order("created_at");
+    setJobs((data as ActiveJob[]) ?? []);
+  };
+
   useEffect(() => {
     supabase
       .from("service_prices")
       .select("*")
       .order("category")
       .then(({ data }) => setPrices((data as Price[]) ?? []));
+    loadJobs();
+    const ch = supabase
+      .channel("workform_jobs")
+      .on("postgres_changes", { event: "*", schema: "public", table: "active_jobs" }, () => loadJobs())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
+
+  const loadFromJob = (j: ActiveJob) => {
+    const fd = (j.form_data ?? {}) as Partial<FormData>;
+    setForm({
+      plate: j.plate,
+      customer: j.customer ?? "",
+      proceso: fd.proceso,
+      procesoValor: fd.procesoValor,
+      compresorId: fd.compresorId,
+      evaporadorId: fd.evaporadorId,
+      condensadorId: fd.condensadorId,
+      ventiladorId: fd.ventiladorId,
+      trompoId: fd.trompoId,
+      instalacionId: fd.instalacionId,
+      manoObra: fd.manoObra ?? true,
+      notes: fd.notes ?? (j.service_name ?? ""),
+    });
+    toast.success(`Datos de ${j.plate} cargados`);
+  };
 
   const update = <K extends keyof FormData>(k: K, v: FormData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -49,6 +95,46 @@ export default function WorkForm({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="grid gap-4">
+      {/* ====== Placas activas en el tablero (duplicado) ====== */}
+      <div className="rounded-lg border bg-card">
+        <div className="border-b px-5 py-3 flex items-center gap-2">
+          <Car className="h-4 w-4 text-primary" />
+          <h2 className="font-semibold">Placas activas en el tablero</h2>
+          <span className="ml-auto text-xs text-muted-foreground">{jobs.length} en proceso</span>
+        </div>
+        {jobs.length === 0 ? (
+          <p className="p-6 text-center text-sm text-muted-foreground">Sin placas activas</p>
+        ) : (
+          <div className="divide-y">
+            {jobs.map((j) => (
+              <div key={j.id} className="p-4 grid sm:grid-cols-[auto_1fr_auto] items-center gap-4">
+                <div className="rounded-md border-2 border-foreground bg-yellow-300 px-3 py-1.5 font-mono text-base font-black text-black">
+                  {j.plate}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="font-semibold">{j.service_name ?? j.service_type}</span>
+                    {j.customer && <span className="text-muted-foreground">· {j.customer}</span>}
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" /> {j.estimated_minutes} min
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-primary" style={{ width: `${Math.min(99, j.progress)}%` }} />
+                  </div>
+                </div>
+                <button
+                  onClick={() => loadFromJob(j)}
+                  className="inline-flex items-center gap-1 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" /> Cargar en formulario
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="rounded-lg border bg-card">
         <div className="border-b px-5 py-3 flex items-center gap-2">
           <ClipboardList className="h-4 w-4 text-primary" />
