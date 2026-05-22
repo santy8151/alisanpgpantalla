@@ -470,12 +470,14 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                   <th className="px-4 py-2 text-left">Nombre</th>
                   <th className="px-4 py-2 text-right">Precio</th>
                   <th className="px-4 py-2 text-right">Tiempo</th>
+                  <th className="px-4 py-2 text-left">Usado en</th>
                   <th className="px-4 py-2"></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {items.map((s) => {
                   const ed = editing[s.id];
+                  const usage = usageByService[s.id] ?? [];
                   if (ed) {
                     return (
                       <tr key={s.id} className="bg-primary/5">
@@ -483,6 +485,7 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                         <td className="px-4 py-2"><input value={ed.name ?? ""} onChange={(e) => setEditing({ ...editing, [s.id]: { ...ed, name: e.target.value } })} className="srv-input" /></td>
                         <td className="px-4 py-2"><input type="number" value={ed.price ?? 0} onChange={(e) => setEditing({ ...editing, [s.id]: { ...ed, price: Number(e.target.value) } })} className="srv-input text-right" /></td>
                         <td className="px-4 py-2"><input type="number" value={ed.delivery_minutes ?? 30} onChange={(e) => setEditing({ ...editing, [s.id]: { ...ed, delivery_minutes: Number(e.target.value) } })} className="srv-input text-right" /></td>
+                        <td className="px-4 py-2" />
                         <td className="px-4 py-2">
                           <div className="flex justify-end gap-1">
                             <button onClick={() => saveEdit(s.id)} className="p-1.5 rounded hover:bg-primary/10 text-primary"><Save className="h-4 w-4" /></button>
@@ -499,6 +502,20 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                       <td className="px-4 py-2 text-right font-mono">${Number(s.price).toLocaleString("es-CO")}</td>
                       <td className="px-4 py-2 text-right"><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" /> {s.delivery_minutes} min</span></td>
                       <td className="px-4 py-2">
+                        {usage.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {usage.map((u, i) => (
+                              <span key={i} className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-1.5 py-0.5 text-[10px] font-semibold">
+                                <span className="font-mono">{u.plate}</span>
+                                {u.customer && <span className="text-muted-foreground">· {u.customer}</span>}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
                         <div className="flex justify-end gap-1">
                           <button onClick={() => startEdit(s)} className="p-1.5 rounded hover:bg-muted"><Pencil className="h-4 w-4" /></button>
                           <button onClick={() => remove(s.id)} className="p-1.5 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-4 w-4" /></button>
@@ -507,7 +524,8 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                     </tr>
                   );
                 })}
-                {items.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">Aún no hay servicios.</td></tr>}
+                {items.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">Aún no hay servicios.</td></tr>}
+
               </tbody>
             </table>
           </div>
