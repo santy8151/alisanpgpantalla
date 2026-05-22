@@ -106,13 +106,18 @@ function CustomerDisplay() {
                 {now.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}
               </div>
             </div>
-            {!audioUnlocked.current && (
+            {!audioUnlocked ? (
               <button
                 onClick={unlockAudio}
                 className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/15 border border-amber-500/40 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-500/25"
+                title="Da permiso al navegador para reproducir el sonido de los llamados de turno"
               >
                 <Megaphone className="h-3.5 w-3.5" /> Activar sonido
               </button>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/15 border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-700">
+                <Megaphone className="h-3.5 w-3.5" /> Sonido activo
+              </span>
             )}
             <Link
               to="/empleado"
