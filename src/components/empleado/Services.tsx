@@ -308,6 +308,12 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1.5 justify-end">
+                  <button onClick={() => openWork(j)} className="inline-flex items-center gap-1 rounded-md border-2 border-primary/40 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
+                    <ClipboardList className="h-3.5 w-3.5" /> Trabajo
+                    {j.form_data && Object.keys(j.form_data).length > 0 && (
+                      <span className="ml-1 inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    )}
+                  </button>
                   <button onClick={() => openDelay(j)} className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-amber-500/10 hover:border-amber-500/40 hover:text-amber-700">
                     <MessageSquare className="h-3.5 w-3.5" /> Demora / mensaje
                   </button>
@@ -321,6 +327,7 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                     <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
                   </button>
                 </div>
+
               </div>
             ))}
           </div>
