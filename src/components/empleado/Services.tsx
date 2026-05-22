@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Megaphone, AlertTriangle, Car, MessageSquare, CheckCircle2, Receipt, User } from "lucide-react";
-import { store } from "@/lib/workOrderStore";
+import { useEffect, useMemo, useState } from "react";
+import { Settings, Plus, Trash2, Save, Pencil, X, Clock, Megaphone, AlertTriangle, Car, MessageSquare, CheckCircle2, Receipt, User, ClipboardList } from "lucide-react";
+import { store, type FormData as WOFormData, type ProcesoTipo, PROCESO_LABELS } from "@/lib/workOrderStore";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 type Service = {
   id: string;
@@ -11,6 +12,8 @@ type Service = {
   price: number;
   delivery_minutes: number;
 };
+
+type JobFormData = Partial<WOFormData>;
 
 type Job = {
   id: string;
@@ -24,7 +27,9 @@ type Job = {
   delay_message: string | null;
   bay: string | null;
   called_at?: string | null;
+  form_data?: JobFormData | null;
 };
+
 
 const CATEGORIES = ["compresor","evaporador","condensador","ventilador","trompo","instalacion","otro"];
 
@@ -44,8 +49,13 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
   const [callJob, setCallJob] = useState<Job | null>(null);
   const [callBay, setCallBay] = useState("Bahía 1");
 
+  // Configurar trabajo (productos + valor + notas) por job
+  const [workJob, setWorkJob] = useState<Job | null>(null);
+  const [workData, setWorkData] = useState<JobFormData>({});
+
   // Crear nueva placa / servicio
   const [newPlate, setNewPlate] = useState({ kind: "vehiculo" as "vehiculo" | "cliente", plate: "", customer: "", service_type: "revision", service_name: "Revisión técnica", estimated_minutes: 30 });
+
 
   const load = async () => {
     setLoading(true);
@@ -57,6 +67,20 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
     setJobs((j as Job[]) ?? []);
     setLoading(false);
   };
+
+  // Para cada servicio del catálogo, lista de placas/clientes que lo tienen seleccionado
+  const usageByService = useMemo(() => {
+    const map: Record<string, { plate: string; customer: string | null }[]> = {};
+    for (const j of jobs) {
+      const fd = (j.form_data ?? {}) as JobFormData;
+      const ids = [fd.compresorId, fd.evaporadorId, fd.condensadorId, fd.ventiladorId, fd.trompoId, fd.instalacionId].filter(Boolean) as string[];
+      for (const id of ids) {
+        (map[id] ||= []).push({ plate: j.plate, customer: j.customer });
+      }
+    }
+    return map;
+  }, [jobs]);
+
 
   useEffect(() => {
     load();
@@ -125,23 +149,63 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
     load();
   };
 
-  // Enviar este servicio al módulo de Factura
+  const inferProceso = (st: string): ProcesoTipo =>
+    st === "instalacion" ? "instalacion"
+    : st === "garantia" ? "garantia"
+    : st === "escaneo_fugas" ? "escaneo_fugas"
+    : st === "mantenimiento" ? "mantenimiento"
+    : "revision";
+
+  // Enviar este servicio al módulo de Factura (usa form_data si existe)
   const goInvoice = (j: Job) => {
+    const fd = (j.form_data ?? {}) as JobFormData;
     store.setForm({
       plate: j.plate,
       customer: j.customer ?? "",
-      proceso: (j.service_type as any) === "instalacion" ? "instalacion"
-        : (j.service_type as any) === "garantia" ? "garantia"
-        : (j.service_type as any) === "escaneo_fugas" ? "escaneo_fugas"
-        : (j.service_type as any) === "mantenimiento" ? "mantenimiento"
-        : "revision",
-      procesoValor: 0,
-      manoObra: false,
-      notes: j.service_name ?? "",
+      proceso: fd.proceso ?? inferProceso(j.service_type),
+      procesoValor: fd.procesoValor ?? 0,
+      compresorId: fd.compresorId,
+      evaporadorId: fd.evaporadorId,
+      condensadorId: fd.condensadorId,
+      ventiladorId: fd.ventiladorId,
+      trompoId: fd.trompoId,
+      instalacionId: fd.instalacionId,
+      manoObra: fd.manoObra ?? false,
+      notes: fd.notes ?? (j.service_name ?? ""),
     });
     toast.success(`Datos de ${j.plate} cargados en Factura`);
     onGoInvoice?.();
   };
+
+  // Abrir modal de configurar trabajo
+  const openWork = (j: Job) => {
+    const fd = (j.form_data ?? {}) as JobFormData;
+    setWorkJob(j);
+    setWorkData({
+      proceso: fd.proceso ?? inferProceso(j.service_type),
+      procesoValor: fd.procesoValor ?? 0,
+      compresorId: fd.compresorId,
+      evaporadorId: fd.evaporadorId,
+      condensadorId: fd.condensadorId,
+      ventiladorId: fd.ventiladorId,
+      trompoId: fd.trompoId,
+      instalacionId: fd.instalacionId,
+      manoObra: fd.manoObra ?? false,
+      notes: fd.notes ?? "",
+    });
+  };
+  const saveWork = async () => {
+    if (!workJob) return;
+    const { error } = await supabase
+      .from("active_jobs")
+      .update({ form_data: workData as any } as any)
+      .eq("id", workJob.id);
+    if (error) return toast.error(error.message);
+    toast.success("Trabajo guardado en el servicio");
+    setWorkJob(null);
+    load();
+  };
+
   const openDelay = (j: Job) => {
     setDelayJob(j);
     setDelayMsg(j.delay_message ?? "");
@@ -258,6 +322,12 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1.5 justify-end">
+                  <button onClick={() => openWork(j)} className="inline-flex items-center gap-1 rounded-md border-2 border-primary/40 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
+                    <ClipboardList className="h-3.5 w-3.5" /> Trabajo
+                    {j.form_data && Object.keys(j.form_data).length > 0 && (
+                      <span className="ml-1 inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    )}
+                  </button>
                   <button onClick={() => openDelay(j)} className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-amber-500/10 hover:border-amber-500/40 hover:text-amber-700">
                     <MessageSquare className="h-3.5 w-3.5" /> Demora / mensaje
                   </button>
@@ -271,6 +341,7 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                     <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
                   </button>
                 </div>
+
               </div>
             ))}
           </div>
@@ -363,6 +434,82 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
         </Modal>
       )}
 
+      {/* ====== Modal Configurar Trabajo (form de trabajo ligado al servicio) ====== */}
+      {workJob && (
+        <Modal onClose={() => setWorkJob(null)} title={`Trabajo realizado · ${workJob.plate}${workJob.customer ? " · " + workJob.customer : ""}`}>
+          <p className="text-sm text-muted-foreground mb-3">
+            Selecciona los productos instalados y el proceso. Esto se llevará a la factura cuando presiones <b>Facturar</b>.
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase text-muted-foreground">Proceso</span>
+              <select className="srv-input mt-1" value={workData.proceso ?? ""} onChange={(e) => setWorkData({ ...workData, proceso: (e.target.value || undefined) as ProcesoTipo | undefined })}>
+                <option value="">—</option>
+                {(Object.keys(PROCESO_LABELS) as ProcesoTipo[]).map((k) => <option key={k} value={k}>{PROCESO_LABELS[k]}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase text-muted-foreground">Valor del proceso (COP)</span>
+              <input type="number" className="srv-input mt-1" value={workData.procesoValor ?? 0} onChange={(e) => setWorkData({ ...workData, procesoValor: Number(e.target.value) })} />
+            </label>
+          </div>
+
+          <div className="space-y-2 max-h-[40vh] overflow-auto pr-1">
+            {([
+              ["compresorId", "compresor", "Compresor"],
+              ["evaporadorId", "evaporador", "Evaporador"],
+              ["condensadorId", "condensador", "Condensador"],
+              ["ventiladorId", "ventilador", "Ventilador"],
+              ["trompoId", "trompo", "Trompo"],
+              ["instalacionId", "instalacion", "Instalación eléctrica"],
+            ] as const).map(([key, cat, label]) => {
+              const opts = items.filter((i) => i.category === cat);
+              return (
+                <label key={key} className="block">
+                  <span className="text-xs font-semibold uppercase text-muted-foreground">{label}</span>
+                  <select
+                    className="srv-input mt-1"
+                    value={(workData as any)[key] ?? ""}
+                    onChange={(e) => setWorkData({ ...workData, [key]: e.target.value || undefined } as JobFormData)}
+                  >
+                    <option value="">— No incluir —</option>
+                    {opts.map((o) => (
+                      <option key={o.id} value={o.id}>{o.name} — ${Number(o.price).toLocaleString("es-CO")}</option>
+                    ))}
+                  </select>
+                </label>
+              );
+            })}
+          </div>
+
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={!!workData.manoObra} onChange={(e) => setWorkData({ ...workData, manoObra: e.target.checked })} />
+            Incluir mano de obra
+          </label>
+
+          <label className="block mt-3">
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Notas</span>
+            <textarea className="srv-input mt-1" rows={2} value={workData.notes ?? ""} onChange={(e) => setWorkData({ ...workData, notes: e.target.value })} />
+          </label>
+
+          <div className="mt-4 flex justify-between gap-2">
+            <button
+              onClick={async () => { await saveWork(); if (workJob) goInvoice({ ...workJob, form_data: workData }); }}
+              className="rounded-md border-2 border-primary text-primary px-3 py-1.5 text-sm font-semibold hover:bg-primary/10"
+            >
+              Guardar e ir a Factura
+            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setWorkJob(null)} className="rounded-md border px-3 py-1.5 text-sm">Cancelar</button>
+              <button onClick={saveWork} className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:bg-primary/90">Guardar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+
+
       {/* ====== Catálogo de servicios (existente) ====== */}
       <div className="rounded-lg border bg-card">
         <div className="border-b px-5 py-3 flex items-center gap-2">
@@ -399,12 +546,14 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                   <th className="px-4 py-2 text-left">Nombre</th>
                   <th className="px-4 py-2 text-right">Precio</th>
                   <th className="px-4 py-2 text-right">Tiempo</th>
+                  <th className="px-4 py-2 text-left">Usado en</th>
                   <th className="px-4 py-2"></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {items.map((s) => {
                   const ed = editing[s.id];
+                  const usage = usageByService[s.id] ?? [];
                   if (ed) {
                     return (
                       <tr key={s.id} className="bg-primary/5">
@@ -412,6 +561,7 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                         <td className="px-4 py-2"><input value={ed.name ?? ""} onChange={(e) => setEditing({ ...editing, [s.id]: { ...ed, name: e.target.value } })} className="srv-input" /></td>
                         <td className="px-4 py-2"><input type="number" value={ed.price ?? 0} onChange={(e) => setEditing({ ...editing, [s.id]: { ...ed, price: Number(e.target.value) } })} className="srv-input text-right" /></td>
                         <td className="px-4 py-2"><input type="number" value={ed.delivery_minutes ?? 30} onChange={(e) => setEditing({ ...editing, [s.id]: { ...ed, delivery_minutes: Number(e.target.value) } })} className="srv-input text-right" /></td>
+                        <td className="px-4 py-2" />
                         <td className="px-4 py-2">
                           <div className="flex justify-end gap-1">
                             <button onClick={() => saveEdit(s.id)} className="p-1.5 rounded hover:bg-primary/10 text-primary"><Save className="h-4 w-4" /></button>
@@ -428,6 +578,20 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                       <td className="px-4 py-2 text-right font-mono">${Number(s.price).toLocaleString("es-CO")}</td>
                       <td className="px-4 py-2 text-right"><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" /> {s.delivery_minutes} min</span></td>
                       <td className="px-4 py-2">
+                        {usage.length === 0 ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {usage.map((u, i) => (
+                              <span key={i} className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-1.5 py-0.5 text-[10px] font-semibold">
+                                <span className="font-mono">{u.plate}</span>
+                                {u.customer && <span className="text-muted-foreground">· {u.customer}</span>}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
                         <div className="flex justify-end gap-1">
                           <button onClick={() => startEdit(s)} className="p-1.5 rounded hover:bg-muted"><Pencil className="h-4 w-4" /></button>
                           <button onClick={() => remove(s.id)} className="p-1.5 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="h-4 w-4" /></button>
@@ -436,7 +600,8 @@ export default function Services({ onGoInvoice }: { onGoInvoice?: () => void } =
                     </tr>
                   );
                 })}
-                {items.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">Aún no hay servicios.</td></tr>}
+                {items.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">Aún no hay servicios.</td></tr>}
+
               </tbody>
             </table>
           </div>

@@ -22,6 +22,7 @@ export type Database = {
           customer: string | null
           delay_message: string | null
           estimated_minutes: number
+          form_data: Json | null
           id: string
           plate: string
           progress: number
@@ -37,6 +38,7 @@ export type Database = {
           customer?: string | null
           delay_message?: string | null
           estimated_minutes?: number
+          form_data?: Json | null
           id?: string
           plate: string
           progress?: number
@@ -52,6 +54,7 @@ export type Database = {
           customer?: string | null
           delay_message?: string | null
           estimated_minutes?: number
+          form_data?: Json | null
           id?: string
           plate?: string
           progress?: number

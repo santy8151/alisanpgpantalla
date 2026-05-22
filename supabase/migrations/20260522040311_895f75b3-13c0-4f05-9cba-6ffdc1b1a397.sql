@@ -1,0 +1,1 @@
+ALTER TABLE public.active_jobs ADD COLUMN IF NOT EXISTS form_data jsonb DEFAULT '{}'::jsonb;
