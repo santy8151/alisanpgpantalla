@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { ScanFace, Camera, Play, ArrowLeft, Loader2, Wrench, Shield, Smile } from "lucide-react";
-import { analyzeFace } from "@/lib/face.functions";
+import { ScanFace, Camera, Play, ArrowLeft, Loader2, Wrench, Shield, UserCheck, LifeBuoy } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { computeDescriptorFromVideo, euclideanDistance, loadFaceModels, MATCH_THRESHOLD } from "@/lib/face-recognition";
 
 export const Route = createFileRoute("/empleado")({
   component: EmpleadoGate,
@@ -10,18 +10,29 @@ export const Route = createFileRoute("/empleado")({
 });
 
 type Role = "operativo" | "admin";
+type Enrollment = { id: string; name: string; descriptor: number[] };
 
 function EmpleadoGate() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [modelLoading, setModelLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [role, setRole] = useState<Role | null>(null);
-  const analyze = useServerFn(analyzeFace);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+
+  useEffect(() => {
+    loadFaceModels().catch(() => {});
+    supabase
+      .from("face_enrollments")
+      .select("id,name,descriptor")
+      .then(({ data }) => setEnrollments((data ?? []) as Enrollment[]));
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
 
   const stopStream = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -33,28 +44,19 @@ function EmpleadoGate() {
     navigate({ to: r === "admin" ? "/admin" : "/panel" });
   };
 
-  const captureFrame = (): string | null => {
-    const video = videoRef.current;
-    if (!video || !video.videoWidth) return null;
-    const canvas = canvasRef.current ?? document.createElement("canvas");
-    canvasRef.current = canvas;
-    canvas.width = 224;
-    canvas.height = 224;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    // center-crop square
-    const size = Math.min(video.videoWidth, video.videoHeight);
-    const sx = (video.videoWidth - size) / 2;
-    const sy = (video.videoHeight - size) / 2;
-    ctx.drawImage(video, sx, sy, size, size, 0, 0, 224, 224);
-    return canvas.toDataURL("image/jpeg", 0.85);
-  };
-
   const startFaceScan = async () => {
     if (!role) return;
     setError(null);
     setInfo(null);
+    if (enrollments.length === 0) {
+      setError("No hay rostros registrados. Pide a soporte que registre tu rostro primero.");
+      return;
+    }
     try {
+      setModelLoading(true);
+      await loadFaceModels();
+      setModelLoading(false);
+
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -62,60 +64,50 @@ function EmpleadoGate() {
         await videoRef.current.play();
       }
       setScanning(true);
-      setProgress(0);
-
-      // Allow camera warm-up
       await new Promise((r) => setTimeout(r, 600));
 
-      let p = 0;
-      const tick = setInterval(() => {
-        p = Math.min(p + 5, 90);
-        setProgress(p);
-      }, 100);
-
-      const image = captureFrame();
-      let detected: string | null = null;
-      if (image) {
-        try {
-          const result = await analyze({ data: { imageBase64: image } });
-          if (result.ok && result.emotionEs) {
-            detected = result.emotionEs;
-            sessionStorage.setItem("emp_emotion", result.emotionEs);
-          } else if (result.error) {
-            console.warn("[face] fallback:", result.error);
-          }
-        } catch (e) {
-          console.warn("[face] request failed", e);
-        }
+      // Try up to 6 frames to detect a face
+      let descriptor: Float32Array | null = null;
+      for (let i = 0; i < 6 && !descriptor; i++) {
+        descriptor = await computeDescriptorFromVideo(videoRef.current!);
+        if (!descriptor) await new Promise((r) => setTimeout(r, 350));
       }
 
-      clearInterval(tick);
-      setProgress(100);
-      setInfo(
-        detected
-          ? `Rostro reconocido · Emoción: ${detected}`
-          : "Rostro verificado (modo demostración)"
-      );
+      if (!descriptor) {
+        setError("No se detectó un rostro. Intenta de nuevo de frente y con buena luz.");
+        setScanning(false);
+        stopStream();
+        return;
+      }
 
-      await new Promise((r) => setTimeout(r, 700));
-      stopStream();
-      sessionStorage.setItem("emp_auth", "face");
-      goNext(role);
-    } catch {
-      setError("No se pudo acceder a la cámara. Use el modo demo.");
+      // Find best match
+      let best: { name: string; distance: number } | null = null;
+      for (const e of enrollments) {
+        const dist = euclideanDistance(descriptor, e.descriptor);
+        if (!best || dist < best.distance) best = { name: e.name, distance: dist };
+      }
+
+      if (best && best.distance <= MATCH_THRESHOLD) {
+        setInfo(`Acceso concedido · ${best.name} (similitud ${(1 - best.distance).toFixed(2)})`);
+        sessionStorage.setItem("emp_auth", "face");
+        sessionStorage.setItem("emp_name", best.name);
+        await new Promise((r) => setTimeout(r, 700));
+        stopStream();
+        goNext(role);
+      } else {
+        setError(
+          `Rostro no reconocido${best ? ` (distancia ${best.distance.toFixed(2)})` : ""}. Pide a soporte que te registre.`
+        );
+        setScanning(false);
+        stopStream();
+      }
+    } catch (e) {
+      console.error(e);
+      setError("No se pudo acceder a la cámara.");
       setScanning(false);
       stopStream();
+      setModelLoading(false);
     }
-  };
-
-  useEffect(() => {
-    return () => stopStream();
-  }, []);
-
-  const goDemo = () => {
-    if (!role) return;
-    sessionStorage.setItem("emp_auth", "demo");
-    goNext(role);
   };
 
   return (
@@ -132,11 +124,10 @@ function EmpleadoGate() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Acceso restringido</h1>
-              <p className="text-sm text-muted-foreground">Selecciona tu perfil y autentícate</p>
+              <p className="text-sm text-muted-foreground">Reconocimiento facial por descriptor 128-d</p>
             </div>
           </div>
 
-          {/* Selector de perfil */}
           <div className="mb-5">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Tipo de acceso</p>
             <div className="grid grid-cols-2 gap-3">
@@ -173,55 +164,52 @@ function EmpleadoGate() {
             {scanning && (
               <>
                 <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-primary/80 animate-pulse" />
-                <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-3 py-2">
-                  <div className="flex items-center gap-2 text-xs text-white">
-                    <Loader2 className="h-3 w-3 animate-spin" /> Analizando rostro… {progress}%
-                  </div>
-                  <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-white/20">
-                    <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
-                  </div>
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-3 py-2 flex items-center gap-2 text-xs text-white">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Analizando rostro…
                 </div>
               </>
+            )}
+            {modelLoading && !scanning && (
+              <div className="absolute top-2 right-2 inline-flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] text-white">
+                <Loader2 className="h-3 w-3 animate-spin" /> Cargando modelo…
+              </div>
             )}
           </div>
 
           {info && (
             <p className="mt-3 text-xs text-primary flex items-center gap-1.5">
-              <Smile className="h-3.5 w-3.5" /> {info}
+              <UserCheck className="h-3.5 w-3.5" /> {info}
             </p>
           )}
           {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
           <button
             onClick={startFaceScan}
-            disabled={scanning || !role}
+            disabled={scanning || !role || modelLoading}
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             <ScanFace className="h-4 w-4" />
             {scanning ? "Escaneando…" : "Iniciar reconocimiento facial"}
           </button>
 
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs uppercase text-muted-foreground">o</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <button
-            onClick={goDemo}
-            disabled={!role}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-input bg-background px-4 py-3 text-sm font-semibold hover:bg-accent disabled:opacity-50"
-          >
-            <Play className="h-4 w-4" /> Modo demo
-          </button>
           {!role && (
             <p className="mt-2 text-[11px] text-center text-muted-foreground">
               Selecciona un perfil arriba para continuar
             </p>
           )}
+
           <p className="mt-3 text-[10px] text-center text-muted-foreground">
-            Reconocimiento facial conectado a modelo Hugging Face (CarPeAs/reconocimiento-facial)
+            {enrollments.length} rostro(s) registrado(s) · Umbral de similitud {MATCH_THRESHOLD}
           </p>
+
+          <div className="my-5 h-px bg-border" />
+
+          <Link
+            to="/empleado/enroll"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-input bg-background px-4 py-3 text-sm font-semibold hover:bg-accent"
+          >
+            <LifeBuoy className="h-4 w-4" /> Soporte · Registrar rostros
+          </Link>
         </div>
       </div>
     </div>

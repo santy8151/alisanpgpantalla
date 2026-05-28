@@ -13,6 +13,7 @@ import { Route as PanelRouteImport } from './routes/panel'
 import { Route as EmpleadoRouteImport } from './routes/empleado'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EmpleadoEnrollRouteImport } from './routes/empleado.enroll'
 
 const PanelRoute = PanelRouteImport.update({
   id: '/panel',
@@ -34,38 +35,46 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmpleadoEnrollRoute = EmpleadoEnrollRouteImport.update({
+  id: '/enroll',
+  path: '/enroll',
+  getParentRoute: () => EmpleadoRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/empleado': typeof EmpleadoRoute
+  '/empleado': typeof EmpleadoRouteWithChildren
   '/panel': typeof PanelRoute
+  '/empleado/enroll': typeof EmpleadoEnrollRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/empleado': typeof EmpleadoRoute
+  '/empleado': typeof EmpleadoRouteWithChildren
   '/panel': typeof PanelRoute
+  '/empleado/enroll': typeof EmpleadoEnrollRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/empleado': typeof EmpleadoRoute
+  '/empleado': typeof EmpleadoRouteWithChildren
   '/panel': typeof PanelRoute
+  '/empleado/enroll': typeof EmpleadoEnrollRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/empleado' | '/panel'
+  fullPaths: '/' | '/admin' | '/empleado' | '/panel' | '/empleado/enroll'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/empleado' | '/panel'
-  id: '__root__' | '/' | '/admin' | '/empleado' | '/panel'
+  to: '/' | '/admin' | '/empleado' | '/panel' | '/empleado/enroll'
+  id: '__root__' | '/' | '/admin' | '/empleado' | '/panel' | '/empleado/enroll'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  EmpleadoRoute: typeof EmpleadoRoute
+  EmpleadoRoute: typeof EmpleadoRouteWithChildren
   PanelRoute: typeof PanelRoute
 }
 
@@ -99,15 +108,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/empleado/enroll': {
+      id: '/empleado/enroll'
+      path: '/enroll'
+      fullPath: '/empleado/enroll'
+      preLoaderRoute: typeof EmpleadoEnrollRouteImport
+      parentRoute: typeof EmpleadoRoute
+    }
   }
 }
+
+interface EmpleadoRouteChildren {
+  EmpleadoEnrollRoute: typeof EmpleadoEnrollRoute
+}
+
+const EmpleadoRouteChildren: EmpleadoRouteChildren = {
+  EmpleadoEnrollRoute: EmpleadoEnrollRoute,
+}
+
+const EmpleadoRouteWithChildren = EmpleadoRoute._addFileChildren(
+  EmpleadoRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  EmpleadoRoute: EmpleadoRoute,
+  EmpleadoRoute: EmpleadoRouteWithChildren,
   PanelRoute: PanelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
