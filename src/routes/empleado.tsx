@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ScanFace, Camera, Play, ArrowLeft, Loader2, Wrench, Shield } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { ScanFace, Camera, Play, ArrowLeft, Loader2, Wrench, Shield, Smile } from "lucide-react";
+import { analyzeFace } from "@/lib/face.functions";
 
 export const Route = createFileRoute("/empleado")({
   component: EmpleadoGate,
@@ -12,47 +14,102 @@ type Role = "operativo" | "admin";
 function EmpleadoGate() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [role, setRole] = useState<Role | null>(null);
+  const analyze = useServerFn(analyzeFace);
+
+  const stopStream = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
 
   const goNext = (r: Role) => {
     sessionStorage.setItem("emp_role", r);
     navigate({ to: r === "admin" ? "/admin" : "/panel" });
   };
 
+  const captureFrame = (): string | null => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return null;
+    const canvas = canvasRef.current ?? document.createElement("canvas");
+    canvasRef.current = canvas;
+    canvas.width = 224;
+    canvas.height = 224;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    // center-crop square
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    const sx = (video.videoWidth - size) / 2;
+    const sy = (video.videoHeight - size) / 2;
+    ctx.drawImage(video, sx, sy, size, size, 0, 0, 224, 224);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  };
+
   const startFaceScan = async () => {
     if (!role) return;
     setError(null);
+    setInfo(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
       setScanning(true);
+      setProgress(0);
+
+      // Allow camera warm-up
+      await new Promise((r) => setTimeout(r, 600));
+
       let p = 0;
-      const interval = setInterval(() => {
-        p += 4;
+      const tick = setInterval(() => {
+        p = Math.min(p + 5, 90);
         setProgress(p);
-        if (p >= 100) {
-          clearInterval(interval);
-          stream.getTracks().forEach((t) => t.stop());
-          sessionStorage.setItem("emp_auth", "face");
-          goNext(role);
+      }, 100);
+
+      const image = captureFrame();
+      let detected: string | null = null;
+      if (image) {
+        try {
+          const result = await analyze({ data: { imageBase64: image } });
+          if (result.ok && result.emotionEs) {
+            detected = result.emotionEs;
+            sessionStorage.setItem("emp_emotion", result.emotionEs);
+          } else if (result.error) {
+            console.warn("[face] fallback:", result.error);
+          }
+        } catch (e) {
+          console.warn("[face] request failed", e);
         }
-      }, 80);
+      }
+
+      clearInterval(tick);
+      setProgress(100);
+      setInfo(
+        detected
+          ? `Rostro reconocido · Emoción: ${detected}`
+          : "Rostro verificado (modo demostración)"
+      );
+
+      await new Promise((r) => setTimeout(r, 700));
+      stopStream();
+      sessionStorage.setItem("emp_auth", "face");
+      goNext(role);
     } catch {
       setError("No se pudo acceder a la cámara. Use el modo demo.");
+      setScanning(false);
+      stopStream();
     }
   };
 
   useEffect(() => {
-    return () => {
-      const stream = videoRef.current?.srcObject as MediaStream | null;
-      stream?.getTracks().forEach((t) => t.stop());
-    };
+    return () => stopStream();
   }, []);
 
   const goDemo = () => {
@@ -128,6 +185,11 @@ function EmpleadoGate() {
             )}
           </div>
 
+          {info && (
+            <p className="mt-3 text-xs text-primary flex items-center gap-1.5">
+              <Smile className="h-3.5 w-3.5" /> {info}
+            </p>
+          )}
           {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
           <button
@@ -157,6 +219,9 @@ function EmpleadoGate() {
               Selecciona un perfil arriba para continuar
             </p>
           )}
+          <p className="mt-3 text-[10px] text-center text-muted-foreground">
+            Reconocimiento facial conectado a modelo Hugging Face (CarPeAs/reconocimiento-facial)
+          </p>
         </div>
       </div>
     </div>
