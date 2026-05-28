@@ -78,10 +78,9 @@ export const analyzeFace = createServerFn({ method: "POST" })
           label: string;
           score: number;
         }>;
-        top = flat.reduce<typeof top>(
-          (best, cur) => (!best || cur.score > best.score ? cur : best),
-          null
-        );
+        for (const cur of flat) {
+          if (!top || cur.score > top.score) top = cur;
+        }
       }
 
       if (!top) {
