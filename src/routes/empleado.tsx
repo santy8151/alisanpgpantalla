@@ -205,7 +205,7 @@ function EmpleadoGate() {
           <div className="my-5 h-px bg-border" />
 
           <Link
-            to="/empleado/enroll"
+            to="/soporte-rostros"
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-input bg-background px-4 py-3 text-sm font-semibold hover:bg-accent"
           >
             <LifeBuoy className="h-4 w-4" /> Soporte · Registrar rostros
