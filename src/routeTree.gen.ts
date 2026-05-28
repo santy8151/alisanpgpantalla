@@ -9,12 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SoporteRostrosRouteImport } from './routes/soporte-rostros'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as EmpleadoRouteImport } from './routes/empleado'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as EmpleadoEnrollRouteImport } from './routes/empleado.enroll'
 
+const SoporteRostrosRoute = SoporteRostrosRouteImport.update({
+  id: '/soporte-rostros',
+  path: '/soporte-rostros',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanelRoute = PanelRouteImport.update({
   id: '/panel',
   path: '/panel',
@@ -35,51 +40,54 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EmpleadoEnrollRoute = EmpleadoEnrollRouteImport.update({
-  id: '/enroll',
-  path: '/enroll',
-  getParentRoute: () => EmpleadoRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/empleado': typeof EmpleadoRouteWithChildren
+  '/empleado': typeof EmpleadoRoute
   '/panel': typeof PanelRoute
-  '/empleado/enroll': typeof EmpleadoEnrollRoute
+  '/soporte-rostros': typeof SoporteRostrosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/empleado': typeof EmpleadoRouteWithChildren
+  '/empleado': typeof EmpleadoRoute
   '/panel': typeof PanelRoute
-  '/empleado/enroll': typeof EmpleadoEnrollRoute
+  '/soporte-rostros': typeof SoporteRostrosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/empleado': typeof EmpleadoRouteWithChildren
+  '/empleado': typeof EmpleadoRoute
   '/panel': typeof PanelRoute
-  '/empleado/enroll': typeof EmpleadoEnrollRoute
+  '/soporte-rostros': typeof SoporteRostrosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/empleado' | '/panel' | '/empleado/enroll'
+  fullPaths: '/' | '/admin' | '/empleado' | '/panel' | '/soporte-rostros'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/empleado' | '/panel' | '/empleado/enroll'
-  id: '__root__' | '/' | '/admin' | '/empleado' | '/panel' | '/empleado/enroll'
+  to: '/' | '/admin' | '/empleado' | '/panel' | '/soporte-rostros'
+  id: '__root__' | '/' | '/admin' | '/empleado' | '/panel' | '/soporte-rostros'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  EmpleadoRoute: typeof EmpleadoRouteWithChildren
+  EmpleadoRoute: typeof EmpleadoRoute
   PanelRoute: typeof PanelRoute
+  SoporteRostrosRoute: typeof SoporteRostrosRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/soporte-rostros': {
+      id: '/soporte-rostros'
+      path: '/soporte-rostros'
+      fullPath: '/soporte-rostros'
+      preLoaderRoute: typeof SoporteRostrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panel': {
       id: '/panel'
       path: '/panel'
@@ -108,33 +116,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/empleado/enroll': {
-      id: '/empleado/enroll'
-      path: '/enroll'
-      fullPath: '/empleado/enroll'
-      preLoaderRoute: typeof EmpleadoEnrollRouteImport
-      parentRoute: typeof EmpleadoRoute
-    }
   }
 }
-
-interface EmpleadoRouteChildren {
-  EmpleadoEnrollRoute: typeof EmpleadoEnrollRoute
-}
-
-const EmpleadoRouteChildren: EmpleadoRouteChildren = {
-  EmpleadoEnrollRoute: EmpleadoEnrollRoute,
-}
-
-const EmpleadoRouteWithChildren = EmpleadoRoute._addFileChildren(
-  EmpleadoRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  EmpleadoRoute: EmpleadoRouteWithChildren,
+  EmpleadoRoute: EmpleadoRoute,
   PanelRoute: PanelRoute,
+  SoporteRostrosRoute: SoporteRostrosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

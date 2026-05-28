@@ -4,7 +4,7 @@ import { ArrowLeft, Camera, Loader2, ScanFace, Trash2, UserPlus, Lock } from "lu
 import { supabase } from "@/integrations/supabase/client";
 import { loadFaceModels, computeDescriptorFromVideo } from "@/lib/face-recognition";
 
-export const Route = createFileRoute("/empleado/enroll")({
+export const Route = createFileRoute("/soporte-rostros")({
   component: EnrollPage,
   head: () => ({ meta: [{ title: "Soporte · Reconocimiento facial | Alisan PG" }] }),
 });
