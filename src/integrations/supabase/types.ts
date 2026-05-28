@@ -65,6 +65,27 @@ export type Database = {
         }
         Relationships: []
       }
+      face_enrollments: {
+        Row: {
+          created_at: string
+          descriptor: number[]
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          descriptor: number[]
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          descriptor?: number[]
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           created_at: string

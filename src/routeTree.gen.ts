@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SoporteRostrosRouteImport } from './routes/soporte-rostros'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as EmpleadoRouteImport } from './routes/empleado'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SoporteRostrosRoute = SoporteRostrosRouteImport.update({
+  id: '/soporte-rostros',
+  path: '/soporte-rostros',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanelRoute = PanelRouteImport.update({
   id: '/panel',
   path: '/panel',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/empleado': typeof EmpleadoRoute
   '/panel': typeof PanelRoute
+  '/soporte-rostros': typeof SoporteRostrosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/empleado': typeof EmpleadoRoute
   '/panel': typeof PanelRoute
+  '/soporte-rostros': typeof SoporteRostrosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/empleado': typeof EmpleadoRoute
   '/panel': typeof PanelRoute
+  '/soporte-rostros': typeof SoporteRostrosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/empleado' | '/panel'
+  fullPaths: '/' | '/admin' | '/empleado' | '/panel' | '/soporte-rostros'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/empleado' | '/panel'
-  id: '__root__' | '/' | '/admin' | '/empleado' | '/panel'
+  to: '/' | '/admin' | '/empleado' | '/panel' | '/soporte-rostros'
+  id: '__root__' | '/' | '/admin' | '/empleado' | '/panel' | '/soporte-rostros'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   EmpleadoRoute: typeof EmpleadoRoute
   PanelRoute: typeof PanelRoute
+  SoporteRostrosRoute: typeof SoporteRostrosRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/soporte-rostros': {
+      id: '/soporte-rostros'
+      path: '/soporte-rostros'
+      fullPath: '/soporte-rostros'
+      preLoaderRoute: typeof SoporteRostrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panel': {
       id: '/panel'
       path: '/panel'
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   EmpleadoRoute: EmpleadoRoute,
   PanelRoute: PanelRoute,
+  SoporteRostrosRoute: SoporteRostrosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
